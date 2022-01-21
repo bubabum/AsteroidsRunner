@@ -101,43 +101,60 @@ class Object {
       this.hitRadius = hitRadius;
    }
    getRandomY() {
-      return Math.floor(Math.random() * (800 - this.height))
+      this.y = Math.floor(Math.random() * (800 - this.height));
    }
    getRandomDestY() {
-      return Math.floor(Math.random() * (800 - this.height))
+      this.destY = Math.floor(Math.random() * (800 - this.height));
    }
    getRandomSpeed() {
-      return Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio
+      this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
    }
 }
 
-// function makeRequest(method, url) {
-//    return new Promise(function (resolve, reject) {
-//       let xhr = new XMLHttpRequest();
-//       xhr.open(method, url);
-//       xhr.onload = function () {
-//          if (this.status >= 200 && this.status < 300) {
-//             resolve(xhr.response);
-//          } else {
-//             reject({
-//                status: this.status,
-//                statusText: xhr.statusText
-//             });
-//          }
-//       };
-//       xhr.onerror = function () {
-//          reject({
-//             status: this.status,
-//             statusText: xhr.statusText
-//          });
-//       };
-//       xhr.send();
-//    });
-// }
-let data = [];
-function updateLoading(index) {
-   data.push(index);
-   return data
+function makeRequest(method, url, type) {
+   return new Promise(function (resolve, reject) {
+      let xhr = new XMLHttpRequest();
+      xhr.open(method, url);
+      xhr.responseType = type;
+      xhr.onload = function () {
+         if (this.status >= 200 && this.status < 300) {
+            resolve(xhr.response);
+         } else {
+            reject({
+               status: this.status,
+               statusText: xhr.statusText
+            });
+         }
+      };
+      xhr.onerror = function () {
+         reject({
+            status: this.status,
+            statusText: xhr.statusText
+         });
+      };
+      xhr.send();
+   });
+}
+
+let resolved = [];
+let promises = [];
+function updateResolving(newResolved) {
+   console.log(resolved.length + '  ' + promises.length);
+   resolved.push(newResolved);
+   let step = 1 / promises.length * 100;
+   //resolved.push(promise);
+   // if (resolved.length === promises.length) {
+   //    resolved = [];
+   //    promises = [];
+   // }
+   return resolved.length * step;
+}
+function updateAudioLoading(percentage) {
+   let newWidth = percentage;
+   document.querySelector('.progress-bar__status').style.width = newWidth + '%';
+   if (newWidth === 100) {
+      setTimeout(() => openScreen('gameStartScreen'), 300)
+   }
 }
 class Buffer {
    constructor(context, urls) {
@@ -146,26 +163,33 @@ class Buffer {
       this.buffer = [];
    }
    loadSound(url, index) {
-      let request = new XMLHttpRequest();
-      request.open('get', url, true);
-      request.responseType = 'arraybuffer';
       let thisBuffer = this;
-      request.onload = function () {
-         thisBuffer.context.decodeAudioData(request.response, function (buffer) {
+      let newPromise = makeRequest('get', url, 'arraybuffer');
+      promises.push(newPromise);
+      newPromise.then(function (value) {
+         thisBuffer.context.decodeAudioData(value, function (buffer) {
+            console.log(index);
             thisBuffer.buffer[index] = buffer;
-            let newData = updateLoading(index);
-            if (newData.length == thisBuffer.urls.length) {
-               thisBuffer.loaded();
-               data = [];
-            }
+            updateAudioLoading(updateResolving(newPromise));
          });
-      };
-      request.send();
+      }, function (reason) {
+         console.log(reason);
+      });
    };
    loadAll() {
       this.urls.forEach((url, index) => {
          this.loadSound(url, index);
       })
+      let thisBuffer = this;
+      //console.log(promises.length);
+      //console.log(this.urls.length);
+      let completed = Promise.all(promises);
+      completed.then(function (value) {
+         updateResolving(100);
+         thisBuffer.loaded();
+      }, function (reason) {
+         console.log(reason); // Ошибка!
+      });
    }
    loaded() {
       saveSounds();
@@ -198,17 +222,6 @@ class Sound {
       this.source.stop(ct);
    }
 }
-
-// function playSound(sound){
-//    let newSound = new Sound(context, bufferLoader.getSoundByIndex(getSoundId(sound)));
-//    newSound.play();
-// }
-// function stopSound(sound){
-//    let newSound = new Sound(context, bufferLoader.getSoundByIndex(getSoundId(sound)));
-//    newSound.stop();
-// }
-
-// let click;
 let context;
 let bufferLoader;
 
@@ -237,7 +250,7 @@ function loadSounds() {
    bufferLoader.loadAll();
 }
 
-function saveSounds() { 
+function saveSounds() {
    audio = {
       theme: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.theme))),
       click: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.click))),
@@ -262,8 +275,9 @@ bg.img.src = 'img/maps/level1.jpg';
 let ship = new Object(20, 385, 50, 50, 500, 6, 40, 17);
 
 function init() {
-   playSound(audio.start);
-   playSound(audio.theme);
+   //audio.theme.stop();
+   //audio.start.play();
+   audio.theme.play();
    reset();
    bg.width = 1250;
    bg.img.src = 'img/maps/level' + gameLevel + '.jpg';
@@ -470,27 +484,27 @@ function generateAsteroid(dt) {
       case 0:
          newAsteroid = new Object(1200, 0, 100, 100, 0, 8, 60, 49);
          newAsteroid.level = 1;
-         newAsteroid.y = newAsteroid.getRandomY();
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomY();
+         newAsteroid.getRandomSpeed();
          break;
       case 1:
          newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29);
          newAsteroid.level = 1;
-         newAsteroid.y = newAsteroid.getRandomY();
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomY();
+         newAsteroid.getRandomSpeed();
          break;
       case 2:
          newAsteroid = new Object(1200, 0, 125, 125, 0, 4, 60, 61.5);
          newAsteroid.level = 1;
-         newAsteroid.y = newAsteroid.getRandomY();
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomY();
+         newAsteroid.getRandomSpeed();
          break;
       case 3:
          newAsteroid = new Object(1200, 0, 80, 80, 0, 4, 70, 39);
          newAsteroid.level = 2;
          newAsteroid.y = newAsteroid.getRandomY();
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
-         newAsteroid.destY = newAsteroid.getRandomDestY();
+         newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomDestY();
          newAsteroid.dY = newAsteroid.y - newAsteroid.destY;
          break;
       case 4:
@@ -503,13 +517,13 @@ function generateAsteroid(dt) {
       case 5:
          newAsteroid = new Object(1200, 0, 70, 70, 0, 4, 70, 29);
          newAsteroid.level = 4;
-         newAsteroid.y = newAsteroid.getRandomY();
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomY();
+         newAsteroid.getRandomSpeed();
          break;
       case 6:
          newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29);
          newAsteroid.level = 5;
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomSpeed();
          newAsteroid.y = 0;
          break;
    }
@@ -605,13 +619,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
    loadSounds();
    document.addEventListener('click', function (event) {
       if (event.target.classList.contains('game-screen__btn')) {
-         openScreen(event.target.dataset.screen);
-         console.log(audio.click);
          audio.click.play();
-         //playSound(audio.click);
+         console.log(audio.theme)
+         audio.theme.play();
+         openScreen(event.target.dataset.screen);
       }
       if (event.target.classList.contains('gameRestart')) {
-         playSound(audio.click);
+         audio.click.play();
          init();
       }
    });
@@ -621,6 +635,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
          if (document.getElementById('endless').checked) endless = true;
          openScreen('gamePlayScreen');
          gameLevel = parseInt(this.dataset.level);
+         audio.click.play();
          init();
       })
    })
