@@ -1,0 +1,239 @@
+body{
+   position: relative;
+   background-color: #404040;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+   font-family: 'Mochiy Pop P One', sans-serif;
+}
+.loader{
+   width: 50px;
+   animation: 1.2s linear infinite loader;
+}
+@keyframes loader {
+   0% {
+     transform: rotate(0deg);
+   }
+   100% {
+     transform: rotate(360deg);
+   }
+ }
+.status{
+   position: relative;
+   width: 1200px;
+   height: 50px;
+   background-color: rgb(76, 11, 119);
+   display: flex;
+   align-items: center;
+}
+.canvas{
+   position: absolute;
+   top: 50px;
+   z-index: 5;
+}
+.title{
+   color: rgb(217, 160, 255);
+   font-size: 120px;
+   font-family: 'Gloria Hallelujah', cursive;
+   z-index: 2;
+}
+.subtitle{
+   color: rgb(217, 160, 255);
+   font-size: 60px;
+   font-family: 'Gloria Hallelujah', cursive;
+   z-index: 2;
+}
+.life{
+   display: flex;
+   align-items: center;
+   position: absolute;
+   left: 50px;
+}
+.life__caption{
+   color: #fff;
+   font-size: 32px;
+}
+.life__img{
+   width: 40px;
+   margin: 0 10px;
+}
+.life__img.hide{
+   opacity: 0;
+}
+.score{
+   position: absolute;
+   color: #fff;
+   font-size: 32px;
+   right: 100px;
+}
+#scoreGameOver{
+   font-size: 50px;
+   padding-left: 20px;
+}
+.avoid{
+   display: flex;
+   align-items: center;
+}
+.catch{
+   display: grid;
+   grid-template-columns: 20% 80%;
+   align-items: center;
+   justify-content: center;
+}
+a.caption{
+   text-decoration: none;
+}
+.caption,
+.control__caption,
+.avoid__caption,
+.catch__caption{
+   color: #fff;
+   font-size: 20px;
+   margin: 20px;
+}
+.avoid__img,
+.catch__img{
+   width: 50px;
+   margin: 10px;
+}
+.game-screen{
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+   position: absolute;
+   top: 0px;
+   width: 1200px;
+   height: 850px;
+   background-color:  rgba(0, 0, 0, 0.5);
+   transition: 0.3s;
+   opacity: 0;
+   visibility: hidden;
+}
+.game-screen.active{
+   opacity: 1;
+   visibility: visible;
+}
+.screen{
+   z-index: 3;
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   flex-direction: column;
+   width: 100%;
+   height: 100%;
+}
+.background{
+   position: absolute;
+   top: 0;
+   width: 100%;
+   height: 100%;
+   overflow: hidden;
+}
+.background__img{
+   width: 100%;
+   height: 100%;
+}
+.game-over__caption{
+   margin: 50px 0;
+   color: #fff;
+   font-size: 50px;
+}
+.game-screen__btn{
+   margin: 25px 0;
+   padding: 5px 15px;
+   background-color: transparent;
+   border-style: none;
+   color: #fff;
+   font-size: 40px;
+   z-index: 3;
+   font-family: 'Mochiy Pop P One', sans-serif;
+   transition: 0.3;
+   border: solid 1px #aaa;
+   border-radius: 20px;
+}
+.game-screen__btn:hover{
+   opacity: 0.7;
+   box-shadow: 0px 0px 20px 0px rgba(237, 123, 247, 0.904);
+}
+.flash{
+   position: absolute;
+   top: 50px;
+   width: 1200px;
+   height: 800px;
+   background-color:  #fff;
+   opacity: 0;
+   animation-duration: 1s;
+   animation-name: flash;
+}
+@keyframes flash {
+   0% {opacity: 1;}
+   100% {opacity: 0;}
+}
+.level{
+   display: grid;
+   grid-template-columns: repeat(3, 33.33%);
+   grid-gap: 30px;
+   justify-content: center;
+   z-index: 2;
+}
+.level__item{
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   transition: 0.3s;
+   cursor: pointer;
+}
+.level__item.inactive{
+   opacity: 0.1;
+   pointer-events: none;
+}
+.level__item:hover .level__img{
+   opacity: 0.5;
+   box-shadow: 0px 0px 30px 0px #fff;
+}
+.level__item:hover .level__caption{
+   transform: translate(0, -80px) scale(1.5);
+}
+.level__img{
+   max-width: 200px;
+   border-radius: 20px;
+   transition: 0.3s;
+}
+.level__caption{
+   color: #fff;
+   font-size: 18px;
+   margin: 10px 0;
+   transition: 0.3s;
+}
+.endless{
+   display: flex;
+   transform: translate(20px, 0px);
+}
+.endless.inactive{
+   opacity: 0.1;
+   pointer-events: none;
+}
+.endless__caption{
+   color: #fff;
+   font-size: 25px;
+   margin: 20px 0;
+}
+#endless{
+   display: none;
+}
+.endless__caption::before{
+   content: "";
+   display: block;
+   transform: translate(-50px, 35px);
+   width: 30px;
+   height: 30px;
+   border: 2px solid #fff;
+   border-radius: 10px;
+   transition: 0.3s;
+}
+#endless:checked+.endless__caption::before{
+   background-color: #fff;
+}

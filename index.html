@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
+   <title>Asteroids Runner</title>
+   <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+   <div id="gameStartScreen" class="game-screen">
+      <div class="screen">
+         <div class="title">Asteroids Runner</div>
+         <button data-screen="gameLevelScreen" class="game-screen__btn">Start Game</button>
+         <button data-screen="howToPlayScreen" class="game-screen__btn">How to play</button>
+         <button data-screen="creditsScreen" class="game-screen__btn">Credits</button>
+      </div>
+      <div class="background">
+         <img src="img/background.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="howToPlayScreen" class="game-screen">
+      <div class="screen">
+         <div class="control__caption">Use WASD or Arrows for move</div>
+         <div class="avoid">
+            <div class="avoid__caption">Avoid this dudes:</div>
+            <img src="img/avoid1.png" alt="" class="avoid__img">
+            <img src="img/avoid2.png" alt="" class="avoid__img">
+         </div>
+         <div class="catch__caption">Catch your friends: </div>
+         <div class="catch">
+            <img src="img/catch0.png" alt="" class="catch__img">
+            <div class="caption">Slow all asteroids</div>
+            <img src="img/catch1.png" alt="" class="catch__img">
+            <div class="caption">Massive explosion</div>
+            <img src="img/catch2.png" alt="" class="catch__img">
+            <div class="caption">Invisibility</div>
+            <img src="img/catch3.png" alt="" class="catch__img">
+            <div class="caption">Gives you extra life</div>
+         </div>
+         <div class="caption">You need to score 300 points to complete a world.</div>
+         <div class="caption">All your progress will be saved, even if you turn off your PC!</div>
+         <button data-screen="gameStartScreen" class="game-screen__btn">Back</button>
+      </div>
+      <div class="background">
+         <img src="img/background3.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="creditsScreen" class="game-screen">
+      <div class="screen">
+         <div class="subtitle">Game created by Mykola Kyslyi</div>
+         <div class="caption">Space Jazz by Kevin MacLeod</div>
+         <a class="caption" href="https://incompetech.filmmusic.io/song/8328-space-jazz" target="_blank">https://incompetech.filmmusic.io/song/8328-space-jazz</a>
+         <a class="caption" href="https://filmmusic.io/standard-license" target="_blank">https://filmmusic.io/standard-license</a>
+         <button data-screen="gameStartScreen" class="game-screen__btn">Back</button>
+      </div>
+      <div class="background">
+         <img src="img/background3.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="gameLevelScreen" class="game-screen">
+      <div class="screen">
+         <div class="subtitle">Choose world:</div>
+         <div class="level">
+            <div data-level="1" class="level__item">
+               <img src="img/maps/level1.jpg" alt="" class="level__img">
+               <div class="level__caption">World 1</div>
+            </div>
+            <div data-level="2" class="level__item">
+               <img src="img/maps/level2.jpg" alt="" class="level__img">
+               <div class="level__caption">World 2</div>
+            </div>
+            <div data-level="3" class="level__item">
+               <img src="img/maps/level3.jpg" alt="" class="level__img">
+               <div class="level__caption">World 3</div>
+            </div>
+            <div data-level="4" class="level__item">
+               <img src="img/maps/level4.jpg" alt="" class="level__img">
+               <div class="level__caption">World 4</div>
+            </div>
+            <div data-level="5" class="level__item">
+               <img src="img/maps/level5.jpg" alt="" class="level__img">
+               <div class="level__caption">World 5</div>
+            </div>
+            <div data-level="6" class="level__item">
+               <img src="img/maps/level6s.jpg" alt="" class="level__img">
+               <div class="level__caption">World 6</div>
+            </div>
+         </div>
+         <div class="endless">
+            <input id="endless" type="checkbox">
+            <label for="endless" class="endless__caption">Endless</label>
+         </div>
+         <button data-screen="gameStartScreen" class="game-screen__btn">Back</button>
+      </div>
+      <div class="background">
+         <img src="img/background2.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="gameOverScreen" class="game-screen">
+      <div class="screen">
+         <div class="game-over__caption">Game Over</div>
+         <div class="game-over__caption">You scored: <span id="scoreGameOver"></span></div>
+         <button data-screen="gamePlayScreen" class="game-screen__btn gameRestart">Restart</button>
+         <button data-screen="gameLevelScreen" class="game-screen__btn">Change World</button>
+      </div>
+      <div class="background">
+         <img src="img/background4.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="worlCompletedScreen" class="game-screen">
+      <div class="screen">
+         <div class="game-over__caption">World completed!</div>
+         <button data-screen="gameLevelScreen" class="game-screen__btn">Next world</button>
+      </div>
+      <div class="background">
+         <img src="img/background5.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="gamePlayScreen" class="game-screen">
+      <div class="status">
+         <div class="life">
+            <div class="life__caption">Extra life:</div>
+            <img src="img/life.png" alt="" id="life" class="life__img hide">
+         </div>
+         <div class="score">Score: <span id='score'>0</span></div>
+      </div>
+   </div>
+   <div id="loadingScreen" class="game-screen">
+      <div class="screen">
+         <img src="img/loader.png" alt="" class="loader">
+         <div class="game-over__caption">Loading...</div>
+      </div>
+   </div>
+   <script src="script.js"></script>
+</body>
+
+</html>
