@@ -60,8 +60,6 @@ const player = 'player';
 const levels = document.querySelectorAll('.level__item');
 
 let bg = {
-   width: 1250,
-   img: new Image(),
    scroll: 0,
 };
 
@@ -83,17 +81,18 @@ let slowTimeOut;
 let gameLevel;
 let renderFrame = true;
 let endless;
-
+let ship;
 let playerProgress = [1, 0, 0, 0, 0, 0];
-
+let imagesCache = {};
+let audioBuffer = {};
 class Object {
-   constructor(x, y, width, height, speed, frames, frameSpeed, hitRadius) {
+   constructor(x, y, width, height, speed, frames, frameSpeed, hitRadius, img) {
       this.x = x;
       this.y = y;
       this.width = width;
       this.height = height;
       this.speed = speed;
-      this.img = new Image();
+      this.img = img;
       this.frame = 1;
       this.frames = frames;
       this.frameSpeed = frameSpeed;
@@ -109,94 +108,16 @@ class Object {
    getRandomSpeed() {
       this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
    }
-}
-
-function makeRequest(method, url, type) {
-   return new Promise(function (resolve, reject) {
-      let xhr = new XMLHttpRequest();
-      xhr.open(method, url);
-      xhr.responseType = type;
-      xhr.onload = function () {
-         if (this.status >= 200 && this.status < 300) {
-            resolve(xhr.response);
-         } else {
-            reject({
-               status: this.status,
-               statusText: xhr.statusText
-            });
-         }
-      };
-      xhr.onerror = function () {
-         reject({
-            status: this.status,
-            statusText: xhr.statusText
-         });
-      };
-      xhr.send();
-   });
-}
-
-let resolved = [];
-let promises = [];
-function updateResolving(newResolved) {
-   console.log(resolved.length + '  ' + promises.length);
-   resolved.push(newResolved);
-   let step = 1 / promises.length * 100;
-   //resolved.push(promise);
-   // if (resolved.length === promises.length) {
-   //    resolved = [];
-   //    promises = [];
-   // }
-   return resolved.length * step;
-}
-function updateAudioLoading(percentage) {
-   let newWidth = percentage;
-   document.querySelector('.progress-bar__status').style.width = newWidth + '%';
-   if (newWidth === 100) {
-      setTimeout(() => openScreen('gameStartScreen'), 300)
+   render(){
+      ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
    }
-}
-class Buffer {
-   constructor(context, urls) {
-      this.context = context;
-      this.urls = urls;
-      this.buffer = [];
-   }
-   loadSound(url, index) {
-      let thisBuffer = this;
-      let newPromise = makeRequest('get', url, 'arraybuffer');
-      promises.push(newPromise);
-      newPromise.then(function (value) {
-         thisBuffer.context.decodeAudioData(value, function (buffer) {
-            console.log(index);
-            thisBuffer.buffer[index] = buffer;
-            updateAudioLoading(updateResolving(newPromise));
-         });
-      }, function (reason) {
-         console.log(reason);
-      });
-   };
-   loadAll() {
-      this.urls.forEach((url, index) => {
-         this.loadSound(url, index);
-      })
-      let thisBuffer = this;
-      //console.log(promises.length);
-      //console.log(this.urls.length);
-      let completed = Promise.all(promises);
-      completed.then(function (value) {
-         updateResolving(100);
-         thisBuffer.loaded();
-      }, function (reason) {
-         console.log(reason); // Ошибка!
-      });
-   }
-   loaded() {
-      saveSounds();
-      openScreen('gameStartScreen');
-   }
-   getSoundByIndex(index) {
-      return this.buffer[index];
+   updateSprite(dt) {
+      this.frameTime += dt;
+      if (this.frameTime > this.frameSpeed / 1000) {
+         this.frame++
+         this.frameTime = 0;
+      }
+      if (this.frame > this.frames) this.frame = 1;
    }
 }
 class Sound {
@@ -215,74 +136,201 @@ class Sound {
    play() {
       this.init();
       this.source.start(this.context.currentTime);
+      this.playing = true;
    }
    stop() {
-      var ct = this.context.currentTime + 0.5;
-      this.gainNode.gain.exponentialRampToValueAtTime(0.001, ct);
-      this.source.stop(ct);
+      this.gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
+      this.source.stop(this.context.currentTime + 0.5);
+      this.playing = false;
    }
 }
-let context;
-let bufferLoader;
+function loadResources(){
+   let audioUrls = {
+      theme: 'sounds/space_jazz.mp3',
+      click: 'sounds/click.mp3',
+      start: 'sounds/start.mp3',
+      impact: 'sounds/impact.mp3',
+      gameOver: 'sounds/game_over.mp3',
+      levelCompleted: 'sounds/level_completed.mp3',
+      slow: 'sounds/slow.mp3',
+      flash: 'sounds/flash.mp3',
+      invisibility: 'sounds/invisibility.mp3',
+      extraLife: 'sounds/extra_life.mp3',
+   };
+   let imagesUrls = {
+      alien: 'img/alien.png',
+      ship: 'img/ship.png',
+      invisibility: 'img/invisibility.png',
+      asteroid0: 'img/ast0.png',
+      asteroid1: 'img/ast1.png',
+      asteroid2: 'img/ast2.png',
+      asteroid3: 'img/ast3.png',
+      asteroid4: 'img/ast4.png',
+      asteroid5: 'img/ast5.png',
+      asteroid6: 'img/ast6.png',
+      powerUp0: 'img/pu0.png',
+      powerUp1: 'img/pu1.png',
+      powerUp2: 'img/pu2.png',
+      powerUp3: 'img/pu3.png',
+      level1: 'img/maps/level1.jpg',
+      level2: 'img/maps/level2.jpg',
+      level3: 'img/maps/level3.jpg',
+      level4: 'img/maps/level4.jpg',
+      level5: 'img/maps/level5.jpg',
+      level6: 'img/maps/level6.jpg',
+   }
+   let urls = [];
 
-let audio;
-let audioUrls = {
-   theme: 'sounds/space_jazz.mp3',
-   click: 'sounds/click.mp3',
-   start: 'sounds/start.mp3',
-   impact: 'sounds/impact.mp3',
-   gameOver: 'sounds/game_over.mp3',
-   levelCompleted: 'sounds/level_completed.mp3',
-   slow: 'sounds/slow.mp3',
-   flash: 'sounds/flash.mp3',
-   invisibility: 'sounds/invisibility.mp3',
-   extraLife: 'sounds/extra_life.mp3',
-};
-let sounds = [];
+   class Buffer {
+      constructor(context, urls) {
+         this.context = context;
+         this.urls = urls;
+         this.buffer = [];
+         this.index = 0;
+      }
+      loadSound(url, index) {
+         let thisBuffer = this;
+         let newPromise = makeRequest('get', url, 'arraybuffer');
+         newPromise.then(value => {
+            updateProgress(newPromise);
+            let subPromise = thisBuffer.context.decodeAudioData(value, function(decodedData) {
+               thisBuffer.buffer[index] = decodedData;
+               updateProgress(subPromise);
+               thisBuffer.index++;
+               if (thisBuffer.index === thisBuffer.urls.length){
+                  decoded();
+               }
+            });
+            promises.push(subPromise);
+            }, reason => {
+               console.log(reason);
+         });
+         promises.push(newPromise);
+      }
+      getSoundByIndex(index) {
+         return this.buffer[index];
+      }
+   }
 
-function loadSounds() {
+   function makeRequest(method, url, type) {
+      return new Promise(function (resolve, reject) {
+         let xhr = new XMLHttpRequest();
+         xhr.open(method, url);
+         xhr.responseType = type;
+         xhr.onload = function () {
+            if (this.status >= 200 && this.status < 300) {
+               resolve(xhr.response);
+            } else {
+               reject({
+                  status: this.status,
+                  statusText: xhr.statusText
+               });
+            }
+         };
+         xhr.onerror = function () {
+            reject({
+               status: this.status,
+               statusText: xhr.statusText
+            });
+         };
+         xhr.send();
+      });
+   }
+
+   function loadImages() {
+      for (key in imagesUrls) {
+         let newKey = key;
+         let newPromise = loadImage(imagesUrls[key]);
+         promises.push(newPromise);
+         newPromise.then(function (value) {
+            imagesCache[newKey] = value;
+            updateProgress(newPromise);
+         }, function (reason) {
+            console.log(reason);
+         });
+      }
+      function loadImage(url) {
+         return new Promise((resolve, reject) => {
+            let img = new Image();
+            img.src = url;
+            img.onload = resolve(img);
+            img.onerror = reject;
+          })
+      }
+   }
+
+   function loadSounds() {
+      for (key in audioUrls) {
+         urls.push(audioUrls[key]);
+      }
+      context = new (window.AudioContext || window.webkitAudioContext)();
+      bufferLoader = new Buffer(context, urls);
+      bufferLoader.urls.forEach(element => bufferLoader.loadSound(element, bufferLoader.urls.indexOf(element)));
+   }
+
+   function updateProgress(newResolved) { // визначаємо крок для progress bar
+      resolved.push(newResolved);
+      let step = 1 / promises.length * 100;
+      let newWidth = resolved.length * step;
+      document.querySelector('.progress-bar__status').style.width = newWidth + '%';
+   }
+
+   function decoded() {
+      for (key in audioUrls) {
+         let newKey = key;
+         audioBuffer[newKey] = new Sound(context, bufferLoader.getSoundByIndex(urls.indexOf(audioUrls[key])));
+      }
+      let completed = Promise.all(promises);
+      completed.then(function (value) {
+         openScreen('gameStartScreen');
+      }, function (reason) {
+         console.log(reason);
+      });
+   }
+
+   let context;
+   let bufferLoader;
+   let resolved = [];
+   let promises = [];
    openScreen('loadingScreen');
-   for (key in audioUrls) {
-      sounds.push(audioUrls[key]);
-   }
-   context = new (window.AudioContext || window.webkitAudioContext)();
-   bufferLoader = new Buffer(context, sounds);
-   bufferLoader.loadAll();
+   loadImages();
+   loadSounds();
 }
 
-function saveSounds() {
-   audio = {
-      theme: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.theme))),
-      click: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.click))),
-      start: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.start))),
-      impact: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.impact))),
-      gameOver: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.gameOver))),
-      levelCompleted: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.levelCompleted))),
-      slow: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.slow))),
-      flash: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.flash))),
-      invisibility: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.invisibility))),
-      extraLife: new Sound(context, bufferLoader.getSoundByIndex(getSoundId(audioUrls.extraLife))),
-   }
+function reset() {
+   let oldFlash = document.querySelector('.flash');
+   if (oldFlash) oldFlash.remove();
+   isGameOver = false;
+   isInvisible = false;
+   asteroidsOnScreen = baseAsteroidsOnScreen;
+   ship = new Object(20, 385, 50, 50, 500, 6, 40, 17, imagesCache.ship);
+   asteroids = [];
+   powerUps = [];
+   score = 0;
+   scoreElement.innerHTML = score;
+   powerUpCounter = 0;
+   extraLife = 0;
 }
-
-function getSoundId(sound) {
-   for (let i = 0; i < sounds.length; i++) {
-      if (sounds[i] === sound) return i
-   }
-}
-
-bg.img.src = 'img/maps/level1.jpg';
-let ship = new Object(20, 385, 50, 50, 500, 6, 40, 17);
 
 function init() {
-   //audio.theme.stop();
-   //audio.start.play();
-   audio.theme.play();
+   if(audioBuffer.theme.playing === true){
+      audioBuffer.theme.stop();
+   }
+   audioBuffer.start.play();
+   audioBuffer.theme.play();
    reset();
    bg.width = 1250;
-   bg.img.src = 'img/maps/level' + gameLevel + '.jpg';
-   if (gameLevel === 6) {
-      bg.width = 1600;
+   switch (gameLevel) {
+      case 1: bg.img = imagesCache.level1; break;
+      case 2: bg.img = imagesCache.level2; break;
+      case 3: bg.img = imagesCache.level3; break;
+      case 4: bg.img = imagesCache.level4; break;
+      case 5: bg.img = imagesCache.level5; break;
+      case 6: {
+         bg.img = imagesCache.level6;
+         bg.width = 1600;
+      }
+      break;
    }
    openScreen('gamePlayScreen');
    lastTime = Date.now();
@@ -296,9 +344,9 @@ function loop() {
    let now = Date.now();
    let dt = (now - lastTime) / 1000.0;
    update(dt);
-   updateSprite(dt, ship);
-   asteroids.forEach(element => updateSprite(dt, element))
-   powerUps.forEach(element => updateSprite(dt, element))
+   ship.updateSprite(dt);
+   asteroids.forEach(element => element.updateSprite(dt))
+   powerUps.forEach(element => element.updateSprite(dt))
    render();
    lastTime = now;
    if (renderFrame === true) {
@@ -306,32 +354,13 @@ function loop() {
    }
 };
 
-function updateSprite(dt, object) {
-   object.frameTime += dt;
-   if (object.frameTime > object.frameSpeed / 1000) {
-      object.frame++
-      object.frameTime = 0;
-   }
-   if (object.frame > object.frames) object.frame = 1;
-}
-
-function renderObject(object) {
-   if (Array.isArray(object)) {
-      object.forEach(element => {
-         ctx.drawImage(element.img, (element.frame * element.width) - element.width, 0, element.width, element.height, element.x, element.y, element.width, element.height);
-      })
-   } else {
-      ctx.drawImage(object.img, (object.frame * object.width) - object.width, 0, object.width, object.height, object.x, object.y, object.width, object.height);
-   }
-}
-
 function render() {
    ctx.clearRect(0, 0, canvas.width, canvas.height);
    ctx.drawImage(bg.img, bg.scroll, 0, bg.width - bg.scroll, canvas.height, 0, 0, bg.width - bg.scroll, canvas.height);
    ctx.drawImage(bg.img, 0, 0, bg.scroll, canvas.height, bg.width - bg.scroll, 0, bg.scroll, canvas.height);
-   renderObject(asteroids);
-   renderObject(ship);
-   renderObject(powerUps);
+   ship.render();
+   asteroids.forEach(element => element.render());
+   powerUps.forEach(element => element.render());
 }
 
 function update(dt) {
@@ -354,45 +383,45 @@ function powerUp(type) {
       case 3: addExtraLife();
    }
    powerUps = [];
-}
 
-function slowAsteroids() {
-   playSound(audio.slow);
-   if (speedRatio === 1) asteroids.forEach(element => element.speed *= 0.5);
-   speedRatio = 0.5;
-   clearTimeout(slowTimeOut);
-   slowTimeOut = setTimeout(() => speedRatio = 1, 10000);
-}
+   function slowAsteroids() {
+      audioBuffer.slow.play();
+      if (speedRatio === 1) asteroids.forEach(element => element.speed *= 0.5);
+      speedRatio = 0.5;
+      clearTimeout(slowTimeOut);
+      slowTimeOut = setTimeout(() => speedRatio = 1, 10000);
+   }
 
-function flash() {
-   playSound(audio.flash);
-   let oldFlash = document.querySelector('.flash');
-   if (oldFlash) oldFlash.remove();
-   let flash = document.createElement('div');
-   flash.classList.add('flash');
-   document.body.append(flash);
-   score += asteroids.length;
-   updateScore();
-   asteroids = [];
-   spawnAsteroids = false;
-   setTimeout(() => spawnAsteroids = true, 2000);
+   function flash() {
+      audioBuffer.flash.play();
+      let oldFlash = document.querySelector('.flash');
+      if (oldFlash) oldFlash.remove();
+      let flash = document.createElement('div');
+      flash.classList.add('flash');
+      document.body.append(flash);
+      score += asteroids.length;
+      updateScore();
+      asteroids = [];
+      spawnAsteroids = false;
+      setTimeout(() => spawnAsteroids = true, 2000);
+   }
+
+   function addExtraLife() {
+      audioBuffer.extraLife.play();
+      if (extraLife === 1) return
+      extraLife = 1;
+      extraLifeImg.classList.remove('hide');
+   }
 }
 
 function invisibility(time) {
-   playSound(audio.invisibility);
+   audioBuffer.invisibility.play();
    isInvisible = true;
-   ship.img.src = 'img/invisibility.png';
+   ship.img = imagesCache.invisibility;
    setTimeout(() => {
       isInvisible = false;
-      ship.img.src = 'img/ship.png';
+      ship.img = imagesCache.ship;
    }, time);
-}
-
-function addExtraLife() {
-   playSound(audio.extraLife);
-   if (extraLife === 1) return
-   extraLife = 1;
-   extraLifeImg.classList.remove('hide');
 }
 
 function updateScore() {
@@ -407,18 +436,18 @@ function updateScore() {
 function levelCompleted() {
    isGameOver = true;
    playerProgress[gameLevel] = 1;
-   console.log(playerProgress);
    saveLocalStorageItem(player, playerProgress);
    setTimeout(() => {
       openScreen('worlCompletedScreen');
       renderFrame = false;
-      playSound(audio.levelCompleted);
+      audioBuffer.theme.stop();
+      audioBuffer.levelCompleted.play();
    }, 500);
 }
 
 function gameOver() {
    if (isInvisible === true) return
-   playSound(audio.impact);
+   audioBuffer.impact.play();
    if (extraLife > 0) {
       extraLife--;
       extraLifeImg.classList.add('hide');
@@ -426,31 +455,14 @@ function gameOver() {
       return
    }
    isGameOver = true;
-   ship.img.src = 'img/alien.png';
+   ship.img = imagesCache.alien;
    document.getElementById('scoreGameOver').innerHTML = score;
    setTimeout(() => {
       openScreen('gameOverScreen');
-      playSound(audio.gameOver);
-      stopSound(audio.theme);
+      audioBuffer.theme.stop();
+      audioBuffer.gameOver.play();
       renderFrame = false;
    }, 1000);
-}
-
-function reset() {
-   let oldFlash = document.querySelector('.flash');
-   if (oldFlash) oldFlash.remove();
-   ship.img.src = 'img/ship.png';
-   isGameOver = false;
-   isInvisible = false;
-   asteroidsOnScreen = baseAsteroidsOnScreen;
-   ship.x = 20;
-   ship.y = 385;
-   asteroids = [];
-   powerUps = [];
-   score = 0;
-   scoreElement.innerHTML = score;
-   powerUpCounter = 0;
-   extraLife = 0;
 }
 
 function checkCollision(entity, entities) {
@@ -463,11 +475,16 @@ function checkCollision(entity, entities) {
 }
 
 function generatePowerUp() {
-   let newPowerUp = new Object(1200, 0, 60, 40, 700, 4, 60, 22.5);
    let type = Math.floor(Math.random() * 4);
-   newPowerUp.y = newPowerUp.getRandomY();
-   newPowerUp.img.src = 'img/pu' + type + '.png';
+   let newPowerUp = new Object(1200, 0, 60, 40, 700, 4, 60, 22.5, imagesCache.powerUp0);
+   switch (type) {
+      case 1: newPowerUp.img = imagesCache.powerUp1; break
+      case 2: newPowerUp.img = imagesCache.powerUp2; break
+      case 3: newPowerUp.img = imagesCache.powerUp3; break
+   }
+   newPowerUp.getRandomY();
    newPowerUp.type = type;
+   console.log(newPowerUp);
    powerUps.push(newPowerUp);
    powerUpCounter = 0;
 }
@@ -482,52 +499,51 @@ function generateAsteroid(dt) {
    let type = Math.floor(Math.random() * (gameLevel + 1));
    switch (type) {
       case 0:
-         newAsteroid = new Object(1200, 0, 100, 100, 0, 8, 60, 49);
+         newAsteroid = new Object(1200, 0, 100, 100, 0, 8, 60, 49, imagesCache.asteroid0);
          newAsteroid.level = 1;
          newAsteroid.getRandomY();
          newAsteroid.getRandomSpeed();
          break;
       case 1:
-         newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29);
+         newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29, imagesCache.asteroid1);
          newAsteroid.level = 1;
          newAsteroid.getRandomY();
          newAsteroid.getRandomSpeed();
          break;
       case 2:
-         newAsteroid = new Object(1200, 0, 125, 125, 0, 4, 60, 61.5);
+         newAsteroid = new Object(1200, 0, 125, 125, 0, 4, 60, 61.5, imagesCache.asteroid2);
          newAsteroid.level = 1;
          newAsteroid.getRandomY();
          newAsteroid.getRandomSpeed();
          break;
       case 3:
-         newAsteroid = new Object(1200, 0, 80, 80, 0, 4, 70, 39);
+         newAsteroid = new Object(1200, 0, 80, 80, 0, 4, 70, 39, imagesCache.asteroid3);
          newAsteroid.level = 2;
-         newAsteroid.y = newAsteroid.getRandomY();
+         newAsteroid.getRandomY();
          newAsteroid.getRandomSpeed();
          newAsteroid.getRandomDestY();
          newAsteroid.dY = newAsteroid.y - newAsteroid.destY;
          break;
       case 4:
-         newAsteroid = new Object(1200, 0, 40, 40, 0, 4, 70, 15);
+         newAsteroid = new Object(1200, 0, 40, 40, 0, 4, 70, 15, imagesCache.asteroid4);
          newAsteroid.level = 3;
-         newAsteroid.y = Math.abs(newAsteroid.getRandomY() - (newAsteroid.width * 2));
-
-         newAsteroid.speed = newAsteroid.getRandomSpeed();
+         newAsteroid.getRandomY();
+         newAsteroid.y = Math.abs(newAsteroid.y - (newAsteroid.width * 2));
+         newAsteroid.getRandomSpeed();
          break;
       case 5:
-         newAsteroid = new Object(1200, 0, 70, 70, 0, 4, 70, 29);
+         newAsteroid = new Object(1200, 0, 70, 70, 0, 4, 70, 29, imagesCache.asteroid5);
          newAsteroid.level = 4;
          newAsteroid.getRandomY();
          newAsteroid.getRandomSpeed();
          break;
       case 6:
-         newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29);
+         newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29, imagesCache.asteroid6);
          newAsteroid.level = 5;
          newAsteroid.getRandomSpeed();
          newAsteroid.y = 0;
          break;
    }
-   newAsteroid.img.src = 'img/ast' + type + '.png';
    asteroids.push(newAsteroid);
 }
 
@@ -611,21 +627,19 @@ function openScreen(id) {
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
+   loadResources();
    if (getLocalStorageItem(player) === null) {
       saveLocalStorageItem(player, playerProgress);
    } else {
       playerProgress = getLocalStorageItem(player);
    }
-   loadSounds();
    document.addEventListener('click', function (event) {
       if (event.target.classList.contains('game-screen__btn')) {
-         audio.click.play();
-         console.log(audio.theme)
-         audio.theme.play();
+         audioBuffer.click.play();
          openScreen(event.target.dataset.screen);
       }
       if (event.target.classList.contains('gameRestart')) {
-         audio.click.play();
+         audioBuffer.click.play();
          init();
       }
    });
@@ -635,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
          if (document.getElementById('endless').checked) endless = true;
          openScreen('gamePlayScreen');
          gameLevel = parseInt(this.dataset.level);
-         audio.click.play();
+         audioBuffer.click.play();
          init();
       })
    })
