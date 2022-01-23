@@ -82,6 +82,9 @@ let gameLevel;
 let renderFrame = true;
 let endless;
 let ship;
+let invisibilityTimeOut;
+let musicVolume = 0.6;
+let sfxVolume = 0.2;
 let playerProgress = [1, 0, 0, 0, 0, 0];
 let imagesCache = {};
 let audioBuffer = {};
@@ -125,16 +128,16 @@ class Sound {
       this.context = context;
       this.buffer = buffer;
    }
-   init() {
+   init(volume) {
       this.gainNode = this.context.createGain();
       this.source = this.context.createBufferSource();
       this.source.buffer = this.buffer;
       this.source.connect(this.gainNode);
       this.gainNode.connect(this.context.destination);
-      this.gainNode.gain.setValueAtTime(0.8, this.context.currentTime);
+      this.gainNode.gain.setValueAtTime(volume, this.context.currentTime);
    }
-   play() {
-      this.init();
+   play(volume) {
+      this.init(volume);
       this.source.start(this.context.currentTime);
       this.playing = true;
    }
@@ -198,7 +201,7 @@ function loadResources(){
                updateProgress(subPromise);
                thisBuffer.index++;
                if (thisBuffer.index === thisBuffer.urls.length){
-                  decoded();
+                  onDecoding();
                }
             });
             promises.push(subPromise);
@@ -246,19 +249,22 @@ function loadResources(){
             imagesCache[newKey] = value;
             updateProgress(newPromise);
          }, function (reason) {
-            console.log(reason);
+            console.log('promise rejected: failed to load images');
          });
       }
       function loadImage(url) {
          return new Promise((resolve, reject) => {
             let img = new Image();
             img.src = url;
-            img.onload = resolve(img);
-            img.onerror = reject;
+            img.onload = function () {
+               resolve(img);
+            };
+            img.onerror = function (reason) {
+               reject(console.log('failed to load:' + ' ' + url));
+            };
           })
       }
    }
-
    function loadSounds() {
       for (key in audioUrls) {
          urls.push(audioUrls[key]);
@@ -275,7 +281,7 @@ function loadResources(){
       document.querySelector('.progress-bar__status').style.width = newWidth + '%';
    }
 
-   function decoded() {
+   function onDecoding() {
       for (key in audioUrls) {
          let newKey = key;
          audioBuffer[newKey] = new Sound(context, bufferLoader.getSoundByIndex(urls.indexOf(audioUrls[key])));
@@ -284,7 +290,7 @@ function loadResources(){
       completed.then(function (value) {
          openScreen('gameStartScreen');
       }, function (reason) {
-         console.log(reason);
+         console.log('promise rejected: failed to load resources');
       });
    }
 
@@ -316,8 +322,8 @@ function init() {
    if(audioBuffer.theme.playing === true){
       audioBuffer.theme.stop();
    }
-   audioBuffer.start.play();
-   audioBuffer.theme.play();
+   audioBuffer.start.play(sfxVolume);
+   audioBuffer.theme.play(musicVolume);
    reset();
    bg.width = 1250;
    switch (gameLevel) {
@@ -358,9 +364,9 @@ function render() {
    ctx.clearRect(0, 0, canvas.width, canvas.height);
    ctx.drawImage(bg.img, bg.scroll, 0, bg.width - bg.scroll, canvas.height, 0, 0, bg.width - bg.scroll, canvas.height);
    ctx.drawImage(bg.img, 0, 0, bg.scroll, canvas.height, bg.width - bg.scroll, 0, bg.scroll, canvas.height);
-   ship.render();
    asteroids.forEach(element => element.render());
    powerUps.forEach(element => element.render());
+   ship.render();
 }
 
 function update(dt) {
@@ -385,7 +391,7 @@ function powerUp(type) {
    powerUps = [];
 
    function slowAsteroids() {
-      audioBuffer.slow.play();
+      audioBuffer.slow.play(sfxVolume);
       if (speedRatio === 1) asteroids.forEach(element => element.speed *= 0.5);
       speedRatio = 0.5;
       clearTimeout(slowTimeOut);
@@ -393,7 +399,7 @@ function powerUp(type) {
    }
 
    function flash() {
-      audioBuffer.flash.play();
+      audioBuffer.flash.play(sfxVolume);
       let oldFlash = document.querySelector('.flash');
       if (oldFlash) oldFlash.remove();
       let flash = document.createElement('div');
@@ -407,7 +413,7 @@ function powerUp(type) {
    }
 
    function addExtraLife() {
-      audioBuffer.extraLife.play();
+      audioBuffer.extraLife.play(sfxVolume);
       if (extraLife === 1) return
       extraLife = 1;
       extraLifeImg.classList.remove('hide');
@@ -415,10 +421,11 @@ function powerUp(type) {
 }
 
 function invisibility(time) {
-   audioBuffer.invisibility.play();
+   audioBuffer.invisibility.play(sfxVolume);
    isInvisible = true;
    ship.img = imagesCache.invisibility;
-   setTimeout(() => {
+   clearTimeout(invisibilityTimeOut);
+   invisibilityTimeOut = setTimeout(() => {
       isInvisible = false;
       ship.img = imagesCache.ship;
    }, time);
@@ -441,13 +448,13 @@ function levelCompleted() {
       openScreen('worlCompletedScreen');
       renderFrame = false;
       audioBuffer.theme.stop();
-      audioBuffer.levelCompleted.play();
+      audioBuffer.levelCompleted.play(musicVolume);
    }, 500);
 }
 
 function gameOver() {
    if (isInvisible === true) return
-   audioBuffer.impact.play();
+   audioBuffer.impact.play(sfxVolume);
    if (extraLife > 0) {
       extraLife--;
       extraLifeImg.classList.add('hide');
@@ -460,7 +467,7 @@ function gameOver() {
    setTimeout(() => {
       openScreen('gameOverScreen');
       audioBuffer.theme.stop();
-      audioBuffer.gameOver.play();
+      audioBuffer.gameOver.play(musicVolume);
       renderFrame = false;
    }, 1000);
 }
@@ -626,31 +633,37 @@ function openScreen(id) {
    }
 }
 
+function changeVolume() {
+   let newMusicVolume = document.getElementById('music').value / 100;
+   let newSfxVolume = document.getElementById('sfx').value / 100;
+   musicVolume = newMusicVolume;
+   sfxVolume = newSfxVolume;
+}
+
 document.addEventListener('DOMContentLoaded', function (event) {
+   getLocalStorageItem(player) ? playerProgress = getLocalStorageItem(player) : saveLocalStorageItem(player, playerProgress);
    loadResources();
-   if (getLocalStorageItem(player) === null) {
-      saveLocalStorageItem(player, playerProgress);
-   } else {
-      playerProgress = getLocalStorageItem(player);
-   }
    document.addEventListener('click', function (event) {
-      if (event.target.classList.contains('game-screen__btn')) {
-         audioBuffer.click.play();
+      if (event.target.classList.contains('screen__btn')) {
+         audioBuffer.click.play(sfxVolume);
          openScreen(event.target.dataset.screen);
       }
       if (event.target.classList.contains('gameRestart')) {
-         audioBuffer.click.play();
+         audioBuffer.click.play(sfxVolume);
          init();
       }
    });
    levels.forEach(element => {
       element.addEventListener('click', function (event) {
+         audioBuffer.click.play(sfxVolume);
          endless = false;
          if (document.getElementById('endless').checked) endless = true;
          openScreen('gamePlayScreen');
          gameLevel = parseInt(this.dataset.level);
-         audioBuffer.click.play();
          init();
       })
+   })
+   document.querySelectorAll('.screen__range').forEach(element => {
+      element.addEventListener("input", changeVolume, false);
    })
 });
