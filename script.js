@@ -54,16 +54,9 @@ const ctx = canvas.getContext('2d');
 canvas.width = 1200;
 canvas.height = 800;
 document.getElementById('gamePlayScreen').appendChild(canvas);
-const extraLifeImg = document.getElementById('life');
-const scoreElement = document.getElementById('score');
 const player = 'player';
-const levels = document.querySelectorAll('.level__item');
-
-let playerProgress = [1, 0, 0, 0, 0, 0];
 let imagesCache = {};
 let audioBuffer = {};
-let musicVolume = 0.6;
-let sfxVolume = 0.2;
 
 class Sound {
    constructor(context, buffer) {
@@ -89,7 +82,7 @@ class Sound {
       this.playing = false;
    }
 }
-function loadResources(){
+function loadResources() {
    let audioUrls = {
       theme: 'sounds/space_jazz.mp3',
       click: 'sounds/click.mp3',
@@ -138,17 +131,17 @@ function loadResources(){
          let newPromise = makeRequest('get', url, 'arraybuffer');
          newPromise.then(value => {
             updateProgress(newPromise);
-            let subPromise = thisBuffer.context.decodeAudioData(value, function(decodedData) {
+            let subPromise = thisBuffer.context.decodeAudioData(value, function (decodedData) {
                thisBuffer.buffer[index] = decodedData;
                updateProgress(subPromise);
                thisBuffer.index++;
-               if (thisBuffer.index === thisBuffer.urls.length){
+               if (thisBuffer.index === thisBuffer.urls.length) {
                   onDecoding();
                }
             });
             promises.push(subPromise);
-            }, reason => {
-               console.log(reason);
+         }, reason => {
+            console.log(reason);
          });
          promises.push(newPromise);
       }
@@ -204,9 +197,10 @@ function loadResources(){
             img.onerror = function (reason) {
                reject(console.log('failed to load:' + ' ' + url));
             };
-          })
+         })
       }
    }
+
    function loadSounds() {
       for (key in audioUrls) {
          urls.push(audioUrls[key]);
@@ -245,7 +239,7 @@ function loadResources(){
    loadSounds();
 }
 
-function init(world, endless) {
+function init(world) {
 
    class Object {
       constructor(x, y, width, height, speed, frames, frameSpeed, hitRadius, img) {
@@ -270,7 +264,7 @@ function init(world, endless) {
       getRandomSpeed() {
          this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
       }
-      render(){
+      render() {
          ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
       }
       updateSprite(dt) {
@@ -282,7 +276,10 @@ function init(world, endless) {
          if (this.frame > this.frames) this.frame = 1;
       }
    }
-   
+
+   const extraLifeImg = document.getElementById('life');
+   const scoreElement = document.getElementById('score');
+
    let ship = new Object(20, 385, 50, 50, 500, 6, 40, 17, imagesCache.ship);
    let asteroids = [];
    let powerUps = [];
@@ -302,10 +299,13 @@ function init(world, endless) {
    let slowTimeOut;
    let invisibilityTimeOut;
 
+   let playerData = getLocalStorageItem(player);
+
    let oldFlash = document.querySelector('.flash');
    if (oldFlash) {
       oldFlash.remove();
    }
+
    scoreElement.innerHTML = score;
 
    let bg = {
@@ -322,14 +322,14 @@ function init(world, endless) {
          bg.img = imagesCache.world6;
          bg.width = 1600;
       }
-      break;
+         break;
    }
 
-   if(audioBuffer.theme.playing === true){
+   if (audioBuffer.theme.playing === true) {
       audioBuffer.theme.stop();
    }
-   audioBuffer.start.play(sfxVolume);
-   audioBuffer.theme.play(musicVolume);
+   audioBuffer.start.play(playerData.sfxVolume);
+   audioBuffer.theme.play(playerData.musicVolume);
    openScreen('gamePlayScreen');
 
    setTimeout(startSpawn, 2000);
@@ -387,9 +387,9 @@ function init(world, endless) {
          case 3: addExtraLife();
       }
       powerUps = [];
-   
+
       function slowAsteroids() {
-         audioBuffer.slow.play(sfxVolume);
+         audioBuffer.slow.play(playerData.sfxVolume);
          if (speedRatio === 1) asteroids.forEach(element => element.speed *= 0.5);
          speedRatio = 0.5;
          clearTimeout(slowTimeOut);
@@ -399,9 +399,9 @@ function init(world, endless) {
       function resetSpeedRatio() {
          speedRatio = 1;
       }
-   
+
       function flash() {
-         audioBuffer.flash.play(sfxVolume);
+         audioBuffer.flash.play(playerData.sfxVolume);
          let oldFlash = document.querySelector('.flash');
          if (oldFlash) oldFlash.remove();
          let flash = document.createElement('div');
@@ -413,9 +413,9 @@ function init(world, endless) {
          spawnAsteroids = false;
          setTimeout(() => spawnAsteroids = true, 2000);
       }
-   
+
       function addExtraLife() {
-         audioBuffer.extraLife.play(sfxVolume);
+         audioBuffer.extraLife.play(playerData.sfxVolume);
          if (extraLife === 1) return
          extraLife = 1;
          extraLifeImg.classList.remove('hide');
@@ -423,18 +423,18 @@ function init(world, endless) {
    }
 
    function invisibility(time) {
-      audioBuffer.invisibility.play(sfxVolume);
+      audioBuffer.invisibility.play(playerData.sfxVolume);
       isInvisible = true;
       ship.img = imagesCache.invisibility;
       clearTimeout(invisibilityTimeOut);
       invisibilityTimeOut = setTimeout(removeInvisibility, time);
    }
-   
-   removeInvisibility() {
+
+   function removeInvisibility() {
       isInvisible = false;
       ship.img = imagesCache.ship;
    }
-   
+
    function updateScore() {
       score++;
       powerUpCounter++;
@@ -443,26 +443,28 @@ function init(world, endless) {
          generatePowerUp();
       }
       asteroidsOnScreen = Math.floor(score / 50) + baseAsteroidsOnScreen;
-      if (score >= 300 && endless === false) {
+      if (score >= 10 && playerData.endlessMode === false) {
          isGameOver = true;
-         playerProgress[world] = 1;
-         saveLocalStorageItem(player, playerProgress);
+         if (world < 6) {
+            playerData.baseWorlds[world] = 1;
+         } else {
+            playerData.baseWorldsCompleted = true;
+         }
+         saveLocalStorageItem(player, playerData);
          setTimeout(worldCompleted, 500)
-      };
+      }
    }
 
    function worldCompleted() {
       openScreen('worlCompletedScreen');
       renderFrame = false;
       audioBuffer.theme.stop();
-      audioBuffer.levelCompleted.play(musicVolume);
+      audioBuffer.levelCompleted.play(playerData.musicVolume);
    }
-
-
 
    function gameOver() {
       if (isInvisible === true) return
-      audioBuffer.impact.play(sfxVolume);
+      audioBuffer.impact.play(playerData.sfxVolume);
       if (extraLife > 0) {
          extraLife--;
          extraLifeImg.classList.add('hide');
@@ -472,6 +474,10 @@ function init(world, endless) {
       isGameOver = true;
       ship.img = imagesCache.alien;
       document.getElementById('scoreGameOver').innerHTML = score;
+      if (score > playerData.highScore[world - 1]) {
+         playerData.highScore[world - 1] = score;
+         saveLocalStorageItem(player, playerData);
+      }
       setTimeout(endGame, 1000);
    }
 
@@ -479,11 +485,9 @@ function init(world, endless) {
       openScreen('gameOverScreen');
       document.querySelector('.gameRestart').dataset.world = world;
       audioBuffer.theme.stop();
-      audioBuffer.gameOver.play(musicVolume);
+      audioBuffer.gameOver.play(playerData.musicVolume);
       renderFrame = false;
    }
-
-
 
    function checkCollision(entity, entities) {
       if (isGameOver === true) return
@@ -621,7 +625,6 @@ function init(world, endless) {
 
 }
 
-
 function getLocalStorageItem(item) {
    return JSON.parse(localStorage.getItem(item));
 }
@@ -633,49 +636,86 @@ function openScreen(id) {
    if (!id) return
    document.querySelectorAll('.game-screen').forEach(element => element.classList.remove('active'));
    document.getElementById(id).classList.add('active');
-   playerProgress = getLocalStorageItem(player);
-   for (let i = 0; i < levels.length; i++) {
-      if (playerProgress[i] === 0) {
-         levels[i].classList.add('inactive');
+   setAccess();
+}
+
+function setAccess() {
+   let playerData = getLocalStorageItem(player);
+   let baseWorlds = document.getElementById('baseWorlds').querySelectorAll('.worlds__item');
+   for (let i = 0; i < baseWorlds.length; i++) {
+      if (playerData.baseWorlds[i] === 0) {
+         baseWorlds[i].classList.add('inactive');
       } else {
-         levels[i].classList.remove('inactive');
+         baseWorlds[i].classList.remove('inactive');
+         baseWorlds[i].querySelector('.worlds__best').innerHTML = playerData.highScore[i];
       }
    }
-   if (playerProgress[6] === 1) {
+   if (playerData.baseWorldsCompleted === true) {
       document.querySelector('.endless').classList.remove('inactive');
+      document.getElementById('specialWorlds').classList.remove('inactive');
    } else {
       document.querySelector('.endless').classList.add('inactive');
+      document.getElementById('specialWorlds').classList.add('inactive');
    }
+   document.getElementById('music').value = playerData.musicVolume * 100;
+   document.getElementById('sfx').value = playerData.sfxVolume * 100;
+   document.getElementById('endless').checked = playerData.endlessMode;
+}
+
+function changeEndlessMode() {
+   let playerData = getLocalStorageItem(player);
+   let newMode = document.getElementById('endless').checked;
+   console.log(newMode);
+   playerData.endlessMode = newMode;
+   saveLocalStorageItem(player, playerData);
 }
 
 function changeVolume() {
    let newMusicVolume = document.getElementById('music').value / 100;
    let newSfxVolume = document.getElementById('sfx').value / 100;
-   musicVolume = newMusicVolume;
-   sfxVolume = newSfxVolume;
+   let playerData = getLocalStorageItem(player);
+   playerData.musicVolume = newMusicVolume;
+   playerData.sfxVolume = newSfxVolume;
+   saveLocalStorageItem(player, playerData);
+}
+
+function setPlayerData() {
+   if (getLocalStorageItem(player)) return
+   let playerData = {
+      baseWorlds: [1, 0, 0, 0, 0, 0],
+      highScore: [0, 0, 0, 0, 0, 0],
+      baseWorldsCompleted: false,
+      endlessMode: false,
+      specialWorlds: [],
+      musicVolume: 0.6,
+      sfxVolume: 0.2,
+   }
+   saveLocalStorageItem(player, playerData);
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
-   getLocalStorageItem(player) ? playerProgress = getLocalStorageItem(player) : saveLocalStorageItem(player, playerProgress);
+   setPlayerData();
    loadResources();
+   let playerData = getLocalStorageItem(player);
    document.addEventListener('click', function (event) {
       if (event.target.classList.contains('screen__btn')) {
-         audioBuffer.click.play(sfxVolume);
+         audioBuffer.click.play(playerData.sfxVolume);
          openScreen(event.target.dataset.screen);
       }
       if (event.target.classList.contains('gameRestart')) {
-         audioBuffer.click.play(sfxVolume);
+         audioBuffer.click.play(playerData.sfxVolume);
          init(parseInt(event.target.dataset.world));
       }
    });
-   levels.forEach(element => {
+   document.getElementById('baseWorlds').querySelectorAll('.worlds__item').forEach(element => {
       element.addEventListener('click', function (event) {
-         audioBuffer.click.play(sfxVolume);
+         audioBuffer.click.play(playerData.sfxVolume);
          openScreen('gamePlayScreen');
-         init(parseInt(this.dataset.world), document.getElementById('endless').checked);
+         init(parseInt(this.dataset.world));
       })
    })
    document.querySelectorAll('.screen__range').forEach(element => {
-      element.addEventListener("input", changeVolume, false);
+      element.addEventListener('input', changeVolume, false);
    })
+   document.getElementById('endless').addEventListener('input', changeEndlessMode, false);
 });

@@ -199,12 +199,12 @@ a.caption{
    font-size: 50px;
 }
 .screen__btn{
-   margin: 25px 0;
+   margin: 20px 0;
    padding: 5px 15px;
    background-color: transparent;
    border-style: none;
    color: #fff;
-   font-size: 40px;
+   font-size: 32px;
    z-index: 3;
    font-family: 'Mochiy Pop P One', sans-serif;
    transition: 0.3;
@@ -214,6 +214,10 @@ a.caption{
 .screen__btn:hover{
    opacity: 0.7;
    box-shadow: 0px 0px 20px 0px rgba(237, 123, 247, 0.904);
+}
+.screen__btn.inactive{
+   opacity: 0.1;
+   pointer-events: none;
 }
 .flash{
    position: absolute;
@@ -229,14 +233,15 @@ a.caption{
    0% {opacity: 1;}
    100% {opacity: 0;}
 }
-.level{
+.worlds{
    display: grid;
    grid-template-columns: repeat(3, 33.33%);
    grid-gap: 30px;
    justify-content: center;
    z-index: 2;
 }
-.level__item{
+.worlds__item{
+   position: relative;
    display: flex;
    flex-direction: column;
    align-items: center;
@@ -244,27 +249,39 @@ a.caption{
    transition: 0.3s;
    cursor: pointer;
 }
-.level__item.inactive{
+.worlds__item.inactive{
    opacity: 0.1;
    pointer-events: none;
 }
-.level__item:hover .level__img{
+.worlds__item:hover .worlds__img{
    opacity: 0.5;
    box-shadow: 0px 0px 30px 0px #fff;
 }
-.level__item:hover .level__caption{
+.worlds__item:hover .worlds__caption{
    transform: translate(0, -80px) scale(1.5);
 }
-.level__img{
+.worlds__item:hover .worlds__score{
+   opacity: 1;
+}
+.worlds__img{
    max-width: 200px;
    border-radius: 20px;
    transition: 0.3s;
 }
-.level__caption{
+.worlds__caption{
    color: #fff;
    font-size: 18px;
    margin: 10px 0;
    transition: 0.3s;
+}
+.worlds__score{
+   position: absolute;
+   color: #aaa;
+   font-size: 14px;
+   top: 50%;
+   margin: 10px 0;
+   transition: 0.3s;
+   opacity: 0;
 }
 .endless{
    display: flex;

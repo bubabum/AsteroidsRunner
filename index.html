@@ -31,9 +31,9 @@
    <div id="optionsScreen" class="game-screen">
       <div class="screen">
          <div class="caption">Volume:</div>
-         <input id="music" class="screen__range" type="range" value="80" min="0" max="100">
+         <input id="music" class="screen__range" type="range" min="0" max="100">
          <label for="music" class="caption">Music</label>
-         <input id="sfx" class="screen__range" type="range" value="40" min="0" max="100">
+         <input id="sfx" class="screen__range" type="range" min="0" max="100">
          <label for="sfx" class="caption">SFX</label>
          <button data-screen="gameStartScreen" class="screen__btn">Back</button>
       </div>
@@ -76,7 +76,7 @@
                   <img src="img/catch3.png" alt="">
                </div>
                <div class="caption">Gives you extra life</div>
-            </div> 
+            </div>
          </div>
          <div class="caption">You need to score 300 points to complete a world.</div>
          <div class="caption">If you complete all worlds, you can play in endless mode.</div>
@@ -102,37 +102,70 @@
    <div id="gameLevelScreen" class="game-screen">
       <div class="screen">
          <div class="subtitle">Choose world:</div>
-         <div class="level">
-            <div data-world="1" class="level__item">
-               <img src="img/maps/level1.jpg" alt="" class="level__img">
-               <div class="level__caption">World 1</div>
+         <div id="baseWorlds" class="worlds">
+            <div data-world="1" class="worlds__item">
+               <img src="img/maps/level1.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 1</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
-            <div data-world="2" class="level__item">
-               <img src="img/maps/level2.jpg" alt="" class="level__img">
-               <div class="level__caption">World 2</div>
+            <div data-world="2" class="worlds__item">
+               <img src="img/maps/level2.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 2</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
-            <div data-world="3" class="level__item">
-               <img src="img/maps/level3.jpg" alt="" class="level__img">
-               <div class="level__caption">World 3</div>
+            <div data-world="3" class="worlds__item">
+               <img src="img/maps/level3.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 3</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
-            <div data-world="4" class="level__item">
-               <img src="img/maps/level4.jpg" alt="" class="level__img">
-               <div class="level__caption">World 4</div>
+            <div data-world="4" class="worlds__item">
+               <img src="img/maps/level4.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 4</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
-            <div data-world="5" class="level__item">
-               <img src="img/maps/level5.jpg" alt="" class="level__img">
-               <div class="level__caption">World 5</div>
+            <div data-world="5" class="worlds__item">
+               <img src="img/maps/level5.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 5</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
-            <div data-world="6" class="level__item">
-               <img src="img/maps/level6s.jpg" alt="" class="level__img">
-               <div class="level__caption">World 6</div>
+            <div data-world="6" class="worlds__item">
+               <img src="img/maps/level6s.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 6</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
             </div>
          </div>
          <div class="endless">
             <input id="endless" type="checkbox">
             <label for="endless" class="endless__caption">Endless</label>
          </div>
+         <button id="specialWorlds" data-screen="gameSpecialScreen" class="screen__btn">Special Worlds</button>
          <button data-screen="gameStartScreen" class="screen__btn">Back</button>
+      </div>
+      <div class="background">
+         <img src="img/background2.jpg" alt="" class="background__img">
+      </div>
+   </div>
+   <div id="gameSpecialScreen" class="game-screen">
+      <div class="screen">
+         <div class="subtitle">Choose world:</div>
+         <div id="baseWorlds" class="worlds">
+            <div data-world="6" class="worlds__item">
+               <img src="img/maps/level1.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 1</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
+            </div>
+            <div data-world="6" class="worlds__item">
+               <img src="img/maps/level2.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 2</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
+            </div>
+            <div data-world="6" class="worlds__item">
+               <img src="img/maps/level3.jpg" alt="" class="worlds__img">
+               <div class="worlds__caption">World 3</div>
+               <div class="worlds__score">High score: <span class="worlds__best">0</span></div>
+            </div>
+         </div>
+         <button data-screen="gameLevelScreen" class="screen__btn">Back</button>
       </div>
       <div class="background">
          <img src="img/background2.jpg" alt="" class="background__img">
