@@ -241,28 +241,22 @@ function loadResources() {
 
 function init(world) {
 
-   class Object {
+   class InGameObject {
       constructor(x, y, width, height, speed, frames, frameSpeed, hitRadius, img) {
-         this.x = x;
-         this.y = y;
-         this.width = width;
-         this.height = height;
-         this.speed = speed;
-         this.img = img;
+         //this.x = x;
+         //this.y = y;
+         //this.width = width;
+         //this.height = height;
+         //this.speed = speed;
+         //this.img = img;
          this.frame = 1;
          this.frames = frames;
          this.frameSpeed = frameSpeed;
          this.frameTime = 0;
-         this.hitRadius = hitRadius;
+         //this.hitRadius = hitRadius;
       }
       getRandomY() {
          this.y = Math.floor(Math.random() * (800 - this.height));
-      }
-      getRandomDestY() {
-         this.destY = Math.floor(Math.random() * (800 - this.height));
-      }
-      getRandomSpeed() {
-         this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
       }
       render() {
          ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
@@ -276,6 +270,39 @@ function init(world) {
          if (this.frame > this.frames) this.frame = 1;
       }
    }
+
+   class Asteroid extends InGameObject {
+      constructor(width, height, frames, frameSpeed, img) {
+         super(frames);
+         super(frameSpeed);
+         this.x = canvas.width;
+         this.y = Math.floor(Math.random() * (800 - height));
+         this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
+         this.img = img;
+         this.hitRadius = (width / 2) - 1;
+      }
+      getRandomSpeed() {
+         this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
+      }
+      getRandomDestY() {
+         this.destY = Math.floor(Math.random() * (800 - this.height));
+      }
+   }
+
+   class AsteroidFactory extends Asteroid {
+      createType(type) {
+         switch (type) {
+            case 0: return new Asteroid(100, 100, 8, 60, imagesCache.asteroid0);
+            case 1: return new Asteroid(60, 60, 4, 70, imagesCache.asteroid1);
+            case 2: return new Asteroid(125, 125, 4, 60, imagesCache.asteroid2);
+            case 3: return new Asteroid(80, 80, 4, 70, imagesCache.asteroid3);
+            case 4: return new Asteroid(40, 40, 4, 70, imagesCache.asteroid4);
+            case 5: return new Asteroid(70, 70, 4, 70, imagesCache.asteroid5);
+            case 6: return new Asteroid(60, 60, 4, 70, imagesCache.asteroid5);
+         }
+      }
+   }
+
 
    const extraLifeImg = document.getElementById('life');
    const scoreElement = document.getElementById('score');
