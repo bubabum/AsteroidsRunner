@@ -55,6 +55,7 @@ canvas.width = 1200;
 canvas.height = 800;
 document.getElementById('gamePlayScreen').appendChild(canvas);
 const player = 'player';
+
 let imagesCache = {};
 let audioBuffer = {};
 
@@ -241,22 +242,114 @@ function loadResources() {
 
 function init(world) {
 
+   class World {
+      constructor() {
+         this.spaceship = SpaceshipFactory.createSpaceship();
+         this.asteroids = [];
+         this.powerUps = [];
+         this.powerUpInterval = 15;
+         this.speedRatio = 1;
+         this.baseAsteroidsOnScreen = 3;
+         this.asteroidsInterval = 0;
+         this.spawnAsteroids = false;
+         this.renderFrame = true;
+         this.score = 0;
+         this.powerUpCounter = 0;
+         this.asteroidsOnScreen = this.baseAsteroidsOnScreen;
+         this.isGameOver = false;
+         this.lastTime = Date.now();
+         this.slowTimeOut;
+         this.invisibilityTimeOut;
+         this.playerData = getLocalStorageItem(player);
+      }
+      loop() {
+         let now = Date.now();
+         let dt = (now - lastTime) / 1000.0;
+         this.update(dt);
+         this.spaceship.updateSprite(dt);
+         this.asteroids.forEach(element => element.updateSprite(dt));
+         this.powerUps.forEach(element => element.updateSprite(dt));
+         this.render();
+         this.lastTime = now;
+         if (this.renderFrame === true) {
+            requestAnimFrame(loop);
+         }
+      }
+      render() {
+         ctx.clearRect(0, 0, canvas.width, canvas.height);
+         ctx.drawImage(bg.img, bg.scroll, 0, bg.width - bg.scroll, canvas.height, 0, 0, bg.width - bg.scroll, canvas.height);
+         ctx.drawImage(bg.img, 0, 0, bg.scroll, canvas.height, bg.width - bg.scroll, 0, bg.scroll, canvas.height);
+         this.asteroids.forEach(element => element.render());
+         this.powerUps.forEach(element => element.render());
+         this.spaceship.render();
+      }
+      update() {
+         this.spaceship.moveSpaceship(dt);
+         this.asteroids.forEach(element => element.move(dt));
+         this.powerUps.forEach(element => element.move(dt));
+         moveBg(dt);
+         this.removeObjects(asteroids);
+         this.removeObjects(powerUps);
+         if (this.spaceship.checkCollision(this.asteroids)) {
+            gameOver();
+         }
+         if (this.spaceship.checkCollision(this.powerUps)) {
+            this.spaceship.powerUp(this.powerUps[0].effect);
+         }
+         generateAsteroid(dt);
+      }
+      removeObjects() {
+         for (let i = 0; i < object.length; i++) {
+            if (object[i].x < 0 - object[i].width) {
+               object.splice(i, 1);
+               if (isGameOver === false) updateScore();
+            }
+         }
+      }
+   }
+
    class InGameObject {
-      constructor(x, y, width, height, speed, frames, frameSpeed, hitRadius, img) {
-         //this.x = x;
-         //this.y = y;
-         //this.width = width;
-         //this.height = height;
-         //this.speed = speed;
-         //this.img = img;
+      constructor(frames, frameSpeed) {
          this.frame = 1;
          this.frames = frames;
          this.frameSpeed = frameSpeed;
          this.frameTime = 0;
-         //this.hitRadius = hitRadius;
       }
-      getRandomY() {
-         this.y = Math.floor(Math.random() * (800 - this.height));
+      move(dt) {
+         this.x -= this.speed * dt;
+         switch (this.movingType) {
+            case 0: break;
+            case 1: this.y -= this.speed / (canvas.width / this.dY) * dt; break;
+            case 2: {
+               if (this.y > 800 - this.height) {
+                  this.y = 800 - this.height;
+               }
+               this.y += Math.abs(this.x * dt / 10);
+            } break;
+            case 3: {
+               if (this.y > 800 - this.height) {
+                  this.y = 800 - this.height;
+               }
+               if (this.y < 0) {
+                  this.y = 0;
+               }
+               this.y += 5 * Math.sin(this.x / 2.5 * dt);
+            } break;
+            case 4: {
+               if (!this.defaultY) {
+                  let random = Math.random();
+                  if (random < 0.5) {
+                     this.k = -1;
+                     this.y = 800;
+                  } else {
+                     this.k = 1;
+                     this.y = 0;
+                  }
+                  this.defaultY = true;
+               }
+               this.y += (500 * Math.tan(this.x / 1200 * dt)) * this.k;
+            } break;
+         }
       }
       render() {
          ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
@@ -271,43 +364,168 @@ function init(world) {
       }
    }
 
+   class Spaceship extends InGameObject {
+      constructor(frames, frameSpeed) {
+         super(frames, frameSpeed);
+         this.width = 50;
+         this.height = 50;
+         this.x = 20;
+         this.y = 385;
+         this.speed = 500;
+         this.img = imagesCache.ship;
+         this.hitRadius = 17;
+         this.isInvisible = false;
+         this.extraLife = 0;
+      }
+      moveSpaceship(dt) {
+         if (isGameOver === true) return
+         if (input.isDown('LEFT') || input.isDown('a')) {
+            this.x -= this.speed * dt;
+            if (this.x < 0) this.x = 0;
+         }
+         if (input.isDown('RIGHT') || input.isDown('d')) {
+            this.x += this.speed * dt;
+            if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+         }
+         if (input.isDown('DOWN') || input.isDown('s')) {
+            this.y += this.speed * dt;
+            if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+         }
+         if (input.isDown('UP') || input.isDown('w')) {
+            this.y -= this.speed * dt;
+            if (this.y < 0) this.y = 0;
+         }
+         if (input.isDown('SPACE')) {
+         }
+      }
+      checkCollision(objectsArr) {
+         if (isGameOver === true) return
+         let collissions = 0;
+         objectsArr.forEach(element => {
+            if (Math.hypot(Math.abs((this.x + this.width / 2) - (element.x + element.width / 2)), Math.abs((this.y + this.height / 2) - (element.y + element.height / 2))) <= this.hitRadius + element.hitRadius) {
+               collissions++;
+            }
+         })
+         if (collissions > 0) return true
+      }
+      powerUp(effect) {
+         switch (effect) {
+            case 0: this.slowAsteroids(); break;
+            case 1: this.flash(); break;
+            case 2: this.invisibility(5000); break;
+            case 3: this.addExtraLife(); break;
+         }
+         powerUps = [];
+      }
+      slowAsteroids() {
+         audioBuffer.slow.play(playerData.sfxVolume);
+         if (speedRatio === 1) {
+            asteroids.forEach(element => element.speed *= 0.5);
+         }
+         speedRatio = 0.5;
+         clearTimeout(slowTimeOut);
+         slowTimeOut = setTimeout(() => speedRatio = 1, 10000);
+      }
+      flash() {
+         audioBuffer.flash.play(playerData.sfxVolume);
+         let oldFlash = document.querySelector('.flash');
+         if (oldFlash) oldFlash.remove();
+         let flash = document.createElement('div');
+         flash.classList.add('flash');
+         document.body.append(flash);
+         score += asteroids.length;
+         updateScore();
+         asteroids = [];
+         spawnAsteroids = false;
+         setTimeout(() => spawnAsteroids = true, 2000);
+      }
+      addExtraLife() {
+         audioBuffer.extraLife.play(playerData.sfxVolume);
+         if (this.extraLife === 1) return
+         this.extraLife = 1;
+         extraLifeImg.classList.remove('hide');
+      }
+      invisibility(time) {
+         audioBuffer.invisibility.play(playerData.sfxVolume);
+         this.isInvisible = true;
+         this.img = imagesCache.invisibility;
+         clearTimeout(invisibilityTimeOut);
+         invisibilityTimeOut = setTimeout(this.removeInvisibility(), time);
+      }
+      removeInvisibility() {
+         this.isInvisible = false;
+         this.img = imagesCache.ship;
+      }
+   }
+
+   class SpaceshipFactory {
+      static createSpaceship() {
+         return new Spaceship(6, 40);
+      }
+   }
+
    class Asteroid extends InGameObject {
-      constructor(width, height, frames, frameSpeed, img) {
-         super(frames);
-         super(frameSpeed);
+      constructor(width, height, frames, frameSpeed, movingType, img) {
+         super(frames, frameSpeed);
+         this.width = width;
+         this.height = height;
          this.x = canvas.width;
          this.y = Math.floor(Math.random() * (800 - height));
          this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
+         this.movingType = movingType;
          this.img = img;
          this.hitRadius = (width / 2) - 1;
-      }
-      getRandomSpeed() {
-         this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500)) * speedRatio;
-      }
-      getRandomDestY() {
          this.destY = Math.floor(Math.random() * (800 - this.height));
+         this.dY = this.y - this.destY;
       }
    }
 
-   class AsteroidFactory extends Asteroid {
-      createType(type) {
-         switch (type) {
-            case 0: return new Asteroid(100, 100, 8, 60, imagesCache.asteroid0);
-            case 1: return new Asteroid(60, 60, 4, 70, imagesCache.asteroid1);
-            case 2: return new Asteroid(125, 125, 4, 60, imagesCache.asteroid2);
-            case 3: return new Asteroid(80, 80, 4, 70, imagesCache.asteroid3);
-            case 4: return new Asteroid(40, 40, 4, 70, imagesCache.asteroid4);
-            case 5: return new Asteroid(70, 70, 4, 70, imagesCache.asteroid5);
-            case 6: return new Asteroid(60, 60, 4, 70, imagesCache.asteroid5);
-         }
+   class AsteroidFactory {
+      static createAsteroid(type) {
+         let typeOptionsMap = {
+            "0": [100, 100, 8, 60, 0, imagesCache.asteroid0],
+            "1": [60, 60, 4, 70, 0, imagesCache.asteroid1],
+            "2": [125, 125, 4, 60, 0, imagesCache.asteroid2],
+            "3": [80, 80, 4, 70, 1, imagesCache.asteroid3],
+            "4": [40, 40, 4, 70, 2, imagesCache.asteroid4],
+            "5": [70, 70, 4, 70, 3, imagesCache.asteroid5],
+            "6": [60, 60, 4, 70, 4, imagesCache.asteroid6],
+         };
+         return new Asteroid(...typeOptionsMap[type]);
       }
    }
 
+   class PowerUp extends InGameObject {
+      constructor(effect, img) {
+         super(4, 60);
+         this.width = 60;
+         this.height = 40;
+         this.x = canvas.width;
+         this.y = Math.floor(Math.random() * (800 - this.height));
+         this.speed = 700;
+         this.movingType = 0;
+         this.img = img;
+         this.hitRadius = 22.5;
+         this.effect = effect;
+      }
+   }
+
+   class PowerUpFactory {
+      static createPowerUp(type) {
+         let typeOptionsMap = {
+            "0": [0, imagesCache.powerUp0],
+            "1": [1, imagesCache.powerUp1],
+            "2": [2, imagesCache.powerUp2],
+            "3": [3, imagesCache.powerUp3],
+         };
+         return new PowerUp(...typeOptionsMap[type]);
+      }
+   }
 
    const extraLifeImg = document.getElementById('life');
    const scoreElement = document.getElementById('score');
 
-   let ship = new Object(20, 385, 50, 50, 500, 6, 40, 17, imagesCache.ship);
+   let spaceship = SpaceshipFactory.createSpaceship();
    let asteroids = [];
    let powerUps = [];
    let powerUpInterval = 15;
@@ -321,7 +539,7 @@ function init(world) {
    let powerUpCounter = 0;
    let asteroidsOnScreen = baseAsteroidsOnScreen;
    let isGameOver = false;
-   let isInvisible = false;
+   //let isInvisible = false;
    let lastTime = Date.now();
    let slowTimeOut;
    let invisibilityTimeOut;
@@ -371,95 +589,43 @@ function init(world) {
       let now = Date.now();
       let dt = (now - lastTime) / 1000.0;
       update(dt);
-      ship.updateSprite(dt);
-      asteroids.forEach(element => element.updateSprite(dt))
-      powerUps.forEach(element => element.updateSprite(dt))
-      render();
+      spaceship.updateSprite(dt);
+      asteroids.forEach(element => element.updateSprite(dt));
+      powerUps.forEach(element => element.updateSprite(dt));
+      renderAll();
       lastTime = now;
       if (renderFrame === true) {
          requestAnimFrame(loop);
       }
    };
 
-   function render() {
+   function renderAll() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(bg.img, bg.scroll, 0, bg.width - bg.scroll, canvas.height, 0, 0, bg.width - bg.scroll, canvas.height);
       ctx.drawImage(bg.img, 0, 0, bg.scroll, canvas.height, bg.width - bg.scroll, 0, bg.scroll, canvas.height);
       asteroids.forEach(element => element.render());
       powerUps.forEach(element => element.render());
-      ship.render();
+      spaceship.render();
    }
 
    function update(dt) {
-      moveShip(dt);
-      moveObject(dt, asteroids);
-      moveObject(dt, powerUps);
+      spaceship.moveSpaceship(dt);
+      //moveShip(dt);
+      //spaceship.move();
+      asteroids.forEach(element => element.move(dt));
+      powerUps.forEach(element => element.move(dt));
+      // moveObject(dt, asteroids);
+      // moveObject(dt, powerUps);
       moveBg(dt);
       removeObject(asteroids);
       removeObject(powerUps);
-      if (checkCollision(ship, asteroids)) {
+      if (spaceship.checkCollision(asteroids)) {
          gameOver();
       }
-      if (checkCollision(ship, powerUps)) {
-         powerUp(powerUps[0].type);
+      if (spaceship.checkCollision(powerUps)) {
+         spaceship.powerUp(powerUps[0].effect);
       }
       generateAsteroid(dt);
-   }
-
-   function powerUp(type) {
-      switch (type) {
-         case 0: slowAsteroids(); break;
-         case 1: flash(); break;
-         case 2: invisibility(5000); break;
-         case 3: addExtraLife();
-      }
-      powerUps = [];
-
-      function slowAsteroids() {
-         audioBuffer.slow.play(playerData.sfxVolume);
-         if (speedRatio === 1) asteroids.forEach(element => element.speed *= 0.5);
-         speedRatio = 0.5;
-         clearTimeout(slowTimeOut);
-         slowTimeOut = setTimeout(resetSpeedRatio, 10000);
-      }
-
-      function resetSpeedRatio() {
-         speedRatio = 1;
-      }
-
-      function flash() {
-         audioBuffer.flash.play(playerData.sfxVolume);
-         let oldFlash = document.querySelector('.flash');
-         if (oldFlash) oldFlash.remove();
-         let flash = document.createElement('div');
-         flash.classList.add('flash');
-         document.body.append(flash);
-         score += asteroids.length;
-         updateScore();
-         asteroids = [];
-         spawnAsteroids = false;
-         setTimeout(() => spawnAsteroids = true, 2000);
-      }
-
-      function addExtraLife() {
-         audioBuffer.extraLife.play(playerData.sfxVolume);
-         if (extraLife === 1) return
-         extraLife = 1;
-         extraLifeImg.classList.remove('hide');
-      }
-   }
-
-   function invisibility(time) {
-      audioBuffer.invisibility.play(playerData.sfxVolume);
-      isInvisible = true;
-      ship.img = imagesCache.invisibility;
-      clearTimeout(invisibilityTimeOut);
-      invisibilityTimeOut = setTimeout(removeInvisibility, time);
-   }
-
-   function removeInvisibility() {
-      isInvisible = false;
-      ship.img = imagesCache.ship;
    }
 
    function updateScore() {
@@ -499,7 +665,7 @@ function init(world) {
          return;
       }
       isGameOver = true;
-      ship.img = imagesCache.alien;
+      spaceship.img = imagesCache.alien;
       document.getElementById('scoreGameOver').innerHTML = score;
       if (score > playerData.highScore[world - 1]) {
          playerData.highScore[world - 1] = score;
@@ -516,25 +682,18 @@ function init(world) {
       renderFrame = false;
    }
 
-   function checkCollision(entity, entities) {
-      if (isGameOver === true) return
-      let collissions = 0;
-      entities.forEach(element => {
-         if (Math.hypot(Math.abs((entity.x + entity.width / 2) - (element.x + element.width / 2)), Math.abs((entity.y + entity.height / 2) - (element.y + element.height / 2))) <= entity.hitRadius + element.hitRadius) collissions++
-      })
-      if (collissions > 0) return true
-   }
+   // function checkCollision(entity, entities) {
+   //    if (isGameOver === true) return
+   //    let collissions = 0;
+   //    entities.forEach(element => {
+   //       if (Math.hypot(Math.abs((entity.x + entity.width / 2) - (element.x + element.width / 2)), Math.abs((entity.y + entity.height / 2) - (element.y + element.height / 2))) <= entity.hitRadius + element.hitRadius) collissions++
+   //    })
+   //    if (collissions > 0) return true
+   // }
 
    function generatePowerUp() {
       let type = Math.floor(Math.random() * 4);
-      let newPowerUp = new Object(1200, 0, 60, 40, 700, 4, 60, 22.5, imagesCache.powerUp0);
-      switch (type) {
-         case 1: newPowerUp.img = imagesCache.powerUp1; break
-         case 2: newPowerUp.img = imagesCache.powerUp2; break
-         case 3: newPowerUp.img = imagesCache.powerUp3; break
-      }
-      newPowerUp.getRandomY();
-      newPowerUp.type = type;
+      let newPowerUp = PowerUpFactory.createPowerUp(type);
       powerUps.push(newPowerUp);
       powerUpCounter = 0;
    }
@@ -545,55 +704,7 @@ function init(world) {
       if (asteroids.length > asteroidsOnScreen - 1) return
       if (asteroidsInterval < 0.1) return
       asteroidsInterval = 0;
-      let newAsteroid;
-      let type = Math.floor(Math.random() * (world + 1));
-      switch (type) {
-         case 0:
-            newAsteroid = new Object(1200, 0, 100, 100, 0, 8, 60, 49, imagesCache.asteroid0);
-            newAsteroid.level = 1;
-            newAsteroid.getRandomY();
-            newAsteroid.getRandomSpeed();
-            break;
-         case 1:
-            newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29, imagesCache.asteroid1);
-            newAsteroid.level = 1;
-            newAsteroid.getRandomY();
-            newAsteroid.getRandomSpeed();
-            break;
-         case 2:
-            newAsteroid = new Object(1200, 0, 125, 125, 0, 4, 60, 61.5, imagesCache.asteroid2);
-            newAsteroid.level = 1;
-            newAsteroid.getRandomY();
-            newAsteroid.getRandomSpeed();
-            break;
-         case 3:
-            newAsteroid = new Object(1200, 0, 80, 80, 0, 4, 70, 39, imagesCache.asteroid3);
-            newAsteroid.level = 2;
-            newAsteroid.getRandomY();
-            newAsteroid.getRandomSpeed();
-            newAsteroid.getRandomDestY();
-            newAsteroid.dY = newAsteroid.y - newAsteroid.destY;
-            break;
-         case 4:
-            newAsteroid = new Object(1200, 0, 40, 40, 0, 4, 70, 15, imagesCache.asteroid4);
-            newAsteroid.level = 3;
-            newAsteroid.getRandomY();
-            newAsteroid.y = Math.abs(newAsteroid.y - (newAsteroid.width * 2));
-            newAsteroid.getRandomSpeed();
-            break;
-         case 5:
-            newAsteroid = new Object(1200, 0, 70, 70, 0, 4, 70, 29, imagesCache.asteroid5);
-            newAsteroid.level = 4;
-            newAsteroid.getRandomY();
-            newAsteroid.getRandomSpeed();
-            break;
-         case 6:
-            newAsteroid = new Object(1200, 0, 60, 60, 0, 4, 70, 29, imagesCache.asteroid6);
-            newAsteroid.level = 5;
-            newAsteroid.getRandomSpeed();
-            newAsteroid.y = 0;
-            break;
-      }
+      let newAsteroid = AsteroidFactory.createAsteroid(4);
       asteroids.push(newAsteroid);
    }
 
@@ -613,42 +724,20 @@ function init(world) {
       }
    }
 
-   function moveObject(dt, object) {
-      object.forEach(element => {
-         element.x -= element.speed * dt;
-         if (element.level) {
-            switch (element.level) {
-               case 2: element.y -= element.speed / (canvas.width / element.dY) * dt; break;
-               case 3: element.y += Math.abs(element.x * dt / 10); break;
-               case 4: element.y += 5 * Math.sin(element.x / 2.5 * dt); break;
-               // case 5: element.y += Math.atan(element.x / dt - 600) * 5;
-               case 5: element.y += 500 * Math.tan(element.x / 1200 * dt);
-            }
-         }
-      })
-   }
-
-   function moveShip(dt) {
-      if (isGameOver === true) return
-      if (input.isDown('LEFT') || input.isDown('a')) {
-         ship.x -= ship.speed * dt;
-         if (ship.x < 0) ship.x = 0;
-      }
-      if (input.isDown('RIGHT') || input.isDown('d')) {
-         ship.x += ship.speed * dt;
-         if (ship.x > canvas.width - ship.width) ship.x = canvas.width - ship.width;
-      }
-      if (input.isDown('DOWN') || input.isDown('s')) {
-         ship.y += ship.speed * dt;
-         if (ship.y > canvas.height - ship.height) ship.y = canvas.height - ship.height;
-      }
-      if (input.isDown('UP') || input.isDown('w')) {
-         ship.y -= ship.speed * dt;
-         if (ship.y < 0) ship.y = 0;
-      }
-      if (input.isDown('SPACE')) {
-      }
-   }
+   // function moveObject(dt, object) {
+   //    object.forEach(element => {
+   //       element.x -= element.speed * dt;
+   //       if (element.level) {
+   //          switch (element.level) {
+   //             case 2: element.y -= element.speed / (canvas.width / element.dY) * dt; break;
+   //             case 3: element.y += Math.abs(element.x * dt / 10); break;
+   //             case 4: element.y += 5 * Math.sin(element.x / 2.5 * dt); break;
+   //             // case 5: element.y += Math.atan(element.x / dt - 600) * 5;
+   //             case 5: element.y += 500 * Math.tan(element.x / 1200 * dt);
+   //          }
+   //       }
+   //    })
+   // }
 
 }
 
