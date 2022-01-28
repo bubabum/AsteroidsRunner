@@ -233,9 +233,24 @@ a.caption{
    0% {opacity: 1;}
    100% {opacity: 0;}
 }
+.darkness{
+   position: absolute;
+   top: 50px;
+   width: 1200px;
+   height: 800px;
+   opacity: 0;
+   background-color:  #000;
+   animation-duration: 2s;
+   animation-name: darkness;
+}
+@keyframes darkness {
+   0% {opacity: 0;}
+   50% {opacity: 1;}
+   100% {opacity: 0;}
+}
 .worlds{
    display: grid;
-   grid-template-columns: repeat(3, 33.33%);
+   grid-template-columns: repeat(4, 25%);
    grid-gap: 30px;
    justify-content: center;
    z-index: 2;
@@ -264,7 +279,7 @@ a.caption{
    opacity: 1;
 }
 .worlds__img{
-   max-width: 200px;
+   max-width: 150px;
    border-radius: 20px;
    transition: 0.3s;
 }
@@ -277,8 +292,8 @@ a.caption{
 .worlds__score{
    position: absolute;
    color: #aaa;
-   font-size: 14px;
-   top: 50%;
+   font-size: 12px;
+   top: 40%;
    margin: 10px 0;
    transition: 0.3s;
    opacity: 0;

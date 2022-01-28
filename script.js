@@ -109,6 +109,8 @@ function loadResources() {
       asteroid4: 'img/ast4.png',
       asteroid5: 'img/ast5.png',
       asteroid6: 'img/ast6.png',
+      asteroid7: 'img/ast7.png',
+      asteroid8: 'img/ast8.png',
       powerUp0: 'img/pu0.png',
       powerUp1: 'img/pu1.png',
       powerUp2: 'img/pu2.png',
@@ -242,631 +244,449 @@ function loadResources() {
    loadSounds();
 }
 
-   class World {
-      constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world) {
-         this.minAsteroidType = minAsteroidType;
-         this.maxAsteroidType = maxAsteroidType;
-         this.speedMultiplier = speedMultiplier;
-         this.darkness = darkness;
-         this.background = BackgroundFactory.createBackground(background);
-         this.world = world;
-         this.spaceship = SpaceshipFactory.createSpaceship();
-         this.asteroids = [];
+class World {
+   constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world) {
+      this.minAsteroidType = minAsteroidType;
+      this.maxAsteroidType = maxAsteroidType;
+      this.speedMultiplier = speedMultiplier;
+      this.darkness = darkness;
+      this.background = BackgroundFactory.createBackground(background);
+      this.world = world;
+      this.spaceship = SpaceshipFactory.createSpaceship();
+      this.asteroids = [];
+      this.powerUps = [];
+      this.powerUpInterval = 15;
+      this.speedRatio = 1;
+      this.baseAsteroidsOnScreen = 3;
+      this.asteroidsInterval = 0;
+      this.spawnAsteroids = false;
+      this.renderFrame = true;
+      this.score = 0;
+      this.powerUpCounter = 0;
+      this.asteroidsOnScreen = this.baseAsteroidsOnScreen;
+      this.isGameOver = false;
+      this.lastTime = Date.now();
+      this.slowTimeOut;
+      this.playerData = getLocalStorageItem(player);
+   }
+   loop() {
+      let now = Date.now();
+      let dt = (now - this.lastTime) / 1000.0;
+      this.update(dt);
+      this.render();
+      this.lastTime = now;
+      if (this.renderFrame === true) {
+         requestAnimFrame(() => this.loop());
+      }
+   }
+   render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      this.background.render();
+      this.asteroids.forEach(element => element.render());
+      this.powerUps.forEach(element => element.render());
+      this.spaceship.render();
+   }
+   update(dt) {
+      this.moveObjects(dt)
+      this.updateSprites(dt)
+      this.generateAsteroid(dt);
+      this.removeObjects(this.asteroids);
+      this.removeObjects(this.powerUps);
+      this.addDarkness();
+      if (this.isGameOver === true) return;
+      this.spaceship.moveSpaceship(dt);
+      if (this.spaceship.checkCollision(this.asteroids)) {
+         this.gameOver();
+      }
+      if (this.spaceship.checkCollision(this.powerUps)) {
+         switch (this.powerUps[0].effect) {
+            case 0:
+               audioBuffer.slow.play(this.playerData.sfxVolume);
+               this.slowAsteroids();
+               break;
+            case 1:
+               audioBuffer.flash.play(this.playerData.sfxVolume);
+               this.flash();
+               break;
+            case 2:
+               audioBuffer.invisibility.play(this.playerData.sfxVolume);
+               this.spaceship.invisibility(5000);
+               break;
+            case 3:
+               audioBuffer.extraLife.play(this.playerData.sfxVolume);
+               this.spaceship.addExtraLife();
+               break;
+         }
          this.powerUps = [];
-         this.powerUpInterval = 15;
-         this.speedRatio = 1;
-         this.baseAsteroidsOnScreen = 3;
-         this.asteroidsInterval = 0;
-         this.spawnAsteroids = false;
-         this.renderFrame = true;
-         this.score = 0;
-         this.powerUpCounter = 0;
-         this.asteroidsOnScreen = this.baseAsteroidsOnScreen;
-         this.isGameOver = false;
-         this.lastTime = Date.now();
-         this.slowTimeOut;
-         this.playerData = getLocalStorageItem(player);
       }
-      loop() {
-         let now = Date.now();
-         let dt = (now - this.lastTime) / 1000.0;
-         this.update(dt);
-         this.render();
-         this.lastTime = now;
-         if (this.renderFrame === true) {
-            requestAnimFrame(() => this.loop());
-         }
+   }
+   updateSprites(dt) {
+      this.spaceship.updateSprite(dt);
+      this.asteroids.forEach(element => element.updateSprite(dt));
+      this.powerUps.forEach(element => element.updateSprite(dt));
+   }
+   moveObjects(dt) {
+      this.asteroids.forEach(element => element.move(dt));
+      this.powerUps.forEach(element => element.move(dt));
+      this.background.move(dt);
+   }
+   updateScore() {
+      this.score++;
+      this.powerUpCounter++;
+      scoreElement.innerHTML = this.score;
+      if (this.powerUpCounter === this.powerUpInterval) {
+         this.generatePowerUp();
       }
-      render() {
-         ctx.clearRect(0, 0, canvas.width, canvas.height);
-         this.background.render();
-         this.asteroids.forEach(element => element.render());
-         this.powerUps.forEach(element => element.render());
-         this.spaceship.render();
-      }
-      update(dt) {
-         this.asteroids.forEach(element => element.move(dt));
-         this.powerUps.forEach(element => element.move(dt));
-         this.spaceship.updateSprite(dt);
-         this.asteroids.forEach(element => element.updateSprite(dt));
-         this.powerUps.forEach(element => element.updateSprite(dt));
-         this.background.move(dt);
-         this.generateAsteroid(dt);
-         this.removeObjects(this.asteroids);
-         this.removeObjects(this.powerUps);
-         if (this.isGameOver === true) return;
-         this.spaceship.moveSpaceship(dt);
-         if (this.spaceship.checkCollision(this.asteroids)) {
-            this.gameOver();
-         }
-         if (this.spaceship.checkCollision(this.powerUps)) {
-            switch (this.powerUps[0].effect) {
-               case 0: 
-                  audioBuffer.slow.play(this.playerData.sfxVolume);
-                  this.slowAsteroids(); 
-                  break;
-               case 1:
-                  audioBuffer.flash.play(this.playerData.sfxVolume);
-                  this.flash();
-                  break;
-               case 2:
-                  audioBuffer.invisibility.play(this.playerData.sfxVolume);
-                  this.spaceship.invisibility(5000);
-                  break;
-               case 3:
-                  audioBuffer.extraLife.play(this.playerData.sfxVolume);
-                  this.spaceship.addExtraLife();
-                  break;
-            }
-            this.powerUps = [];
-         }
-      }
-      updateScore() {
-         this.score++;
-         this.powerUpCounter++;
-         scoreElement.innerHTML = this.score;
-         if (this.powerUpCounter === this.powerUpInterval) {
-            this.generatePowerUp();
-         }
-         this.asteroidsOnScreen = Math.floor(this.score / 50) + this.baseAsteroidsOnScreen;
-         if (this.score >= 300 && this.playerData.endlessMode === false) {
-            this.isGameOver = true;
-            this.playerData.baseWorlds[this.world] = 1;
-            saveLocalStorageItem(player, this.playerData);
-            setTimeout(this.worldCompleted(), 500)
-         }
-      }
-      worldCompleted() {
-         openScreen('worlCompletedScreen');
-         this.renderFrame = false;
-         audioBuffer.theme.stop();
-         audioBuffer.levelCompleted.play(this.playerData.musicVolume);
-      }
-      generateAsteroid(dt) {
-         if (!this.spawnTimeOut && this.spawnAsteroids === false) {
-            this.spawnTimeOut = setTimeout(() => this.spawnAsteroids = true, 2000);
-            return;
-         }
-         if (this.spawnAsteroids === false) return;
-         if (this.asteroids.length > this.asteroidsOnScreen - 1) return;
-         this.asteroidsInterval += dt;
-         if (this.asteroidsInterval < 0.1) return;
-         this.asteroidsInterval = 0;
-         let newAsteroid = AsteroidFactory.createAsteroid(4);
-         this.asteroids.push(newAsteroid);
-      }
-      generatePowerUp() {
-         let type = Math.floor(Math.random() * 4);
-         let newPowerUp = PowerUpFactory.createPowerUp(type);
-         this.powerUps.push(newPowerUp);
-         this.powerUpCounter = 0;
-      }
-      removeObjects(objectsArr) {
-         for (let i = 0; i < objectsArr.length; i++) {
-            if (objectsArr[i].x < 0 - objectsArr[i].width) {
-               objectsArr.splice(i, 1);
-               if (this.isGameOver === false) {
-                  this.updateScore();
-               }
-            }
-         }
-      }
-      gameOver() {
-         if (this.spaceship.isInvisible === true) return
-         audioBuffer.impact.play(this.playerData.sfxVolume);
-         if (this.spaceship.extraLife > 0) {
-            this.spaceshipextraLife--;
-            extraLifeImg.classList.add('hide');
-            this.spaceship.invisibility(2000);
-            return;
-         }
+      this.asteroidsOnScreen = Math.floor(this.score / 50) + this.baseAsteroidsOnScreen;
+      if (this.score >= 300 && this.playerData.worlds[this.world] < 300) {
          this.isGameOver = true;
-         this.spaceship.img = imagesCache.alien;
-         document.getElementById('scoreGameOver').innerHTML = this.score;
-         if (this.score > this.playerData.highScore[this.world - 1]) {
-            this.playerData.highScore[this.world - 1] = this.score;
-            saveLocalStorageItem(player, this.playerData);
-         }
-         setTimeout(() => {
-            openScreen('gameOverScreen');
-            document.querySelector('.gameRestart').dataset.world = this.world;
-            audioBuffer.theme.stop();
-            audioBuffer.gameOver.play(this.playerData.musicVolume);
-            this.renderFrame = false;
-         }, 1000);
-      }
-      slowAsteroids() {
-         if (this.speedRatio === 1) {
-            this.asteroids.forEach(element => element.speed *= 0.5);
-         }
-         this.speedRatio = 0.5;
-         clearTimeout(this.slowTimeOut);
-         this.slowTimeOut = setTimeout(() => speedRatio = 1, 10000);
-      }
-      flash() {
-         let oldFlash = document.querySelector('.flash');
-         if (oldFlash) oldFlash.remove();
-         let flash = document.createElement('div');
-         flash.classList.add('flash');
-         document.body.append(flash);
-         this.score += this.asteroids.length;
-         this.updateScore();
-         this.asteroids = [];
-         this.spawnAsteroids = false;
-         setTimeout(() => spawnAsteroids = true, 2000);
+         this.playerData.worlds[this.world] = this.score;
+         saveLocalStorageItem(player, this.playerData);
+         setTimeout(() => this.worldCompleted(), 500)
       }
    }
-
-   class WorldFactory {
-      static createWorld(type) {
-         let typeOptionsMap = {
-            "1": [0, 1, 1, false, 1, 1],
-            "2": [0, 1, 1, false, 2, 2],
-            "3": [0, 1, 1, false, 3, 3],
-            "4": [0, 1, 1, false, 4, 4],
-            "5": [0, 1, 1, false, 5, 5],
-            "6": [0, 1, 1, false, 6, 6],
-         };
-         return new World(...typeOptionsMap[type]);
+   worldCompleted() {
+      openScreen('worlCompletedScreen');
+      scoreElement.innerHTML = 0;
+      this.renderFrame = false;
+      audioBuffer.theme.stop();
+      audioBuffer.levelCompleted.play(this.playerData.musicVolume);
+   }
+   generateAsteroid(dt) {
+      if (!this.spawnTimeOut && this.spawnAsteroids === false) {
+         this.spawnTimeOut = setTimeout(() => this.spawnAsteroids = true, 2000);
+         return;
+      }
+      if (this.spawnAsteroids === false) return;
+      if (this.asteroids.length > this.asteroidsOnScreen - 1) return;
+      this.asteroidsInterval += dt;
+      if (this.asteroidsInterval < 0.1) return;
+      this.asteroidsInterval = 0;
+      let newAsteroid = AsteroidFactory.createAsteroid(Math.floor(this.minAsteroidType + Math.random() * (this.maxAsteroidType + 1 - this.minAsteroidType)));
+      newAsteroid.speed *= this.speedRatio * this.speedMultiplier;
+      this.asteroids.push(newAsteroid);
+   }
+   generatePowerUp() {
+      let type = Math.floor(Math.random() * 4);
+      let newPowerUp = PowerUpFactory.createPowerUp(type);
+      this.powerUps.push(newPowerUp);
+      this.powerUpCounter = 0;
+   }
+   removeObjects(objectsArr) {
+      for (let i = 0; i < objectsArr.length; i++) {
+         if (objectsArr[i].x < 0 - objectsArr[i].width) {
+            objectsArr.splice(i, 1);
+            if (this.isGameOver === false) {
+               this.updateScore();
+            }
+         }
       }
    }
+   gameOver() {
+      if (this.spaceship.isInvisible === true) return
+      audioBuffer.impact.play(this.playerData.sfxVolume);
+      if (this.spaceship.extraLife > 0) {
+         this.spaceship.extraLife--;
+         extraLifeImg.classList.add('hide');
+         this.spaceship.invisibility(2000);
+         return;
+      }
+      this.isGameOver = true;
+      this.spaceship.img = imagesCache.alien;
+      document.getElementById('scoreGameOver').innerHTML = this.score;
+      if (this.score > this.playerData.worlds[this.world]) {
+         this.playerData.worlds[this.world] = this.score;
+         saveLocalStorageItem(player, this.playerData);
+      }
+      setTimeout(() => {
+         openScreen('gameOverScreen');
+         document.querySelector('.gameRestart').dataset.world = this.world;
+         scoreElement.innerHTML = 0;
+         audioBuffer.theme.stop();
+         audioBuffer.gameOver.play(this.playerData.musicVolume);
+         this.renderFrame = false;
+      }, 1000);
+   }
+   slowAsteroids() {
+      if (this.speedRatio === 1) {
+         this.asteroids.forEach(element => element.speed *= 0.5);
+      }
+      this.speedRatio = 0.5;
+      clearTimeout(this.slowTimeOut);
+      this.slowTimeOut = setTimeout(() => this.speedRatio = 1, 10000);
+   }
+   flash() {
+      let flash = document.createElement('div');
+      flash.classList.add('flash');
+      document.body.append(flash);
+      this.score += this.asteroids.length;
+      this.updateScore();
+      this.asteroids = [];
+      this.spawnAsteroids = false;
+      setTimeout(() => {
+         this.spawnAsteroids = true;
+         flash.remove();
+      }, 2000);
+   }
+   addDarkness() {
+      if (document.querySelector('.darkness') || this.darkness === false) return
+      let darkness = document.createElement('div');
+      darkness.classList.add('darkness');
+      document.body.append(darkness);
+      setTimeout(() => darkness.remove(), 5000);
+   }
+}
 
-   class Background {
-      constructor(width, img) {
-         this.width = width;
-         this.img = img;
+class WorldFactory {
+   static createWorld(type) {
+      let typeOptionsMap = {
+         "0": [0, 1, 1, false, 1, 0],
+         "1": [0, 2, 1, false, 2, 1],
+         "2": [0, 3, 1, false, 3, 2],
+         "3": [0, 4, 1, false, 4, 3],
+         "4": [0, 5, 1, false, 5, 4],
+         "5": [0, 6, 1, false, 6, 5],
+         "6": [7, 7, 1.5, false, 7, 6],
+         "7": [0, 6, 1, true, 7, 7],
+         "8": [8, 8, 0.5, false, 7, 8],
+         "9": [3, 6, 1, true, 7, 9],
+         "10": [9, 9, 1, false, 7, 10],
+         "11": [0, 9, 1, false, 7, 11],
+      };
+      return new World(...typeOptionsMap[type]);
+   }
+}
+
+class Background {
+   constructor(width, img) {
+      this.width = width;
+      this.img = img;
+      this.scroll = 0;
+   }
+   move(dt) {
+      this.scroll += 200 * dt;
+      if (this.scroll > this.width) {
          this.scroll = 0;
       }
-      move(dt) {
-         this.scroll += 200 * dt;
-         if (this.scroll > this.width) {
-            this.scroll = 0;
-         }
-      }
-      render() {
-         ctx.drawImage(this.img, this.scroll, 0, this.width - this.scroll, canvas.height, 0, 0, this.width - this.scroll, canvas.height);
-         ctx.drawImage(this.img, 0, 0, this.scroll, canvas.height, this.width - this.scroll, 0, this.scroll, canvas.height);
-      }
    }
-
-   class BackgroundFactory {
-      static createBackground(type) {
-         let randomIndex = Math.floor(Math.random() * 6);
-         let randomBackround;
-         switch (randomIndex) {
-            case 0: randomBackround = imagesCache.world1; break;
-            case 1: randomBackround = imagesCache.world2; break;
-            case 2: randomBackround = imagesCache.world3; break;
-            case 3: randomBackround = imagesCache.world4; break;
-            case 4: randomBackround = imagesCache.world5; break;
-            case 5: randomBackround = imagesCache.world6; break;
-         }
-         let width = 1250;
-         if (randomBackround === imagesCache.world6) {
-            width = 1600;
-         }
-         let typeOptionsMap = {
-            "1": [1250, imagesCache.world1],
-            "2": [1250, imagesCache.world2],
-            "3": [1250, imagesCache.world3],
-            "4": [1250, imagesCache.world4],
-            "5": [1250, imagesCache.world5],
-            "6": [1600, imagesCache.world6],
-            "7": [width, randomBackround],
-         };
-         return new Background(...typeOptionsMap[type]);
-      }
+   render() {
+      ctx.drawImage(this.img, this.scroll, 0, this.width - this.scroll, canvas.height, 0, 0, this.width - this.scroll, canvas.height);
+      ctx.drawImage(this.img, 0, 0, this.scroll, canvas.height, this.width - this.scroll, 0, this.scroll, canvas.height);
    }
+}
 
-   class InGameObject {
-      constructor(frames, frameSpeed) {
-         this.frame = 1;
-         this.frames = frames;
-         this.frameSpeed = frameSpeed;
-         this.frameTime = 0;
+class BackgroundFactory {
+   static createBackground(type) {
+      let randomIndex = Math.floor(Math.random() * 6);
+      let randomBackround;
+      switch (randomIndex) {
+         case 0: randomBackround = imagesCache.world1; break;
+         case 1: randomBackround = imagesCache.world2; break;
+         case 2: randomBackround = imagesCache.world3; break;
+         case 3: randomBackround = imagesCache.world4; break;
+         case 4: randomBackround = imagesCache.world5; break;
+         case 5: randomBackround = imagesCache.world6; break;
       }
-      move(dt) {
-         this.x -= this.speed * dt;
-         switch (this.movingType) {
-            case 0: break;
-            case 1: this.y -= this.speed / (canvas.width / this.dY) * dt; break;
-            case 2: {
-               if (this.y > 800 - this.height) {
-                  this.y = 800 - this.height;
-               }
-               this.y += Math.abs(this.x * dt / 10);
-            } break;
-            case 3: {
-               if (this.y > 800 - this.height) {
-                  this.y = 800 - this.height;
-               }
-               if (this.y < 0) {
+      let width = 1250;
+      if (randomBackround === imagesCache.world6) {
+         width = 1600;
+      }
+      let typeOptionsMap = {
+         "1": [1250, imagesCache.world1],
+         "2": [1250, imagesCache.world2],
+         "3": [1250, imagesCache.world3],
+         "4": [1250, imagesCache.world4],
+         "5": [1250, imagesCache.world5],
+         "6": [1600, imagesCache.world6],
+         "7": [width, randomBackround],
+      };
+      return new Background(...typeOptionsMap[type]);
+   }
+}
+
+class InGameObject {
+   constructor(frames, frameSpeed) {
+      this.frame = 1;
+      this.frames = frames;
+      this.frameSpeed = frameSpeed;
+      this.frameTime = 0;
+   }
+   move(dt) {
+      this.x -= this.speed * dt;
+      switch (this.movingType) {
+         case 0: break;
+         case 1: this.y -= this.speed / (canvas.width / this.dY) * dt; break;
+         case 2: {
+            if (this.y > 800 - this.height) {
+               this.y = 800 - this.height;
+            }
+            this.y += Math.abs(this.x * dt / 10);
+         } break;
+         case 3: {
+            if (this.y > 800 - this.height) {
+               this.y = 800 - this.height;
+            }
+            if (this.y < 0) {
+               this.y = 0;
+            }
+            this.y += 5 * Math.sin(this.x / 2.5 * dt);
+         } break;
+         case 4: {
+            if (!this.defaultY) {
+               let random = Math.random();
+               if (random < 0.5) {
+                  this.k = -1;
+                  this.y = 800;
+               } else {
+                  this.k = 1;
                   this.y = 0;
                }
-               this.y += 5 * Math.sin(this.x / 2.5 * dt);
-            } break;
-            case 4: {
-               if (!this.defaultY) {
-                  let random = Math.random();
-                  if (random < 0.5) {
-                     this.k = -1;
-                     this.y = 800;
-                  } else {
-                     this.k = 1;
-                     this.y = 0;
-                  }
-                  this.defaultY = true;
-               }
-               this.y += (500 * Math.tan(this.x / 1200 * dt)) * this.k;
-            } break;
-         }
-      }
-      render() {
-         ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
-      }
-      updateSprite(dt) {
-         this.frameTime += dt;
-         if (this.frameTime > this.frameSpeed / 1000) {
-            this.frame++
-            this.frameTime = 0;
-         }
-         if (this.frame > this.frames) this.frame = 1;
-      }
-   }
-
-   class Spaceship extends InGameObject {
-      constructor(frames, frameSpeed) {
-         super(frames, frameSpeed);
-         this.width = 50;
-         this.height = 50;
-         this.x = 20;
-         this.y = 385;
-         this.speed = 500;
-         this.img = imagesCache.ship;
-         this.hitRadius = 17;
-         this.isInvisible = false;
-         this.extraLife = 0;
-         this.invisibilityTimeOut;
-      }
-      moveSpaceship(dt) {
-         if (input.isDown('LEFT') || input.isDown('a')) {
-            this.x -= this.speed * dt;
-            if (this.x < 0) this.x = 0;
-         }
-         if (input.isDown('RIGHT') || input.isDown('d')) {
-            this.x += this.speed * dt;
-            if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
-         }
-         if (input.isDown('DOWN') || input.isDown('s')) {
-            this.y += this.speed * dt;
-            if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
-         }
-         if (input.isDown('UP') || input.isDown('w')) {
-            this.y -= this.speed * dt;
-            if (this.y < 0) this.y = 0;
-         }
-         if (input.isDown('SPACE')) {
-         }
-      }
-      checkCollision(objectsArr) {
-         let collissions = 0;
-         objectsArr.forEach(element => {
-            if (Math.hypot(Math.abs((this.x + this.width / 2) - (element.x + element.width / 2)), Math.abs((this.y + this.height / 2) - (element.y + element.height / 2))) <= this.hitRadius + element.hitRadius) {
-               collissions++;
+               this.defaultY = true;
             }
-         })
-         if (collissions > 0) return true
-      }
-      addExtraLife() {
-         if (this.extraLife === 1) return
-         this.extraLife = 1;
-         extraLifeImg.classList.remove('hide');
-      }
-      invisibility(time) {
-         this.isInvisible = true;
-         this.img = imagesCache.invisibility;
-         clearTimeout(invisibilityTimeOut);
-         invisibilityTimeOut = setTimeout(this.removeInvisibility(), time);
-      }
-      removeInvisibility() {
-         this.isInvisible = false;
-         this.img = imagesCache.ship;
+            this.y += (500 * Math.tan(this.x / 1200 * dt)) * this.k;
+         } break;
       }
    }
+   render() {
+      ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
+   }
+   updateSprite(dt) {
+      this.frameTime += dt;
+      if (this.frameTime > this.frameSpeed / 1000) {
+         this.frame++
+         this.frameTime = 0;
+      }
+      if (this.frame > this.frames) this.frame = 1;
+   }
+}
 
-   class SpaceshipFactory {
-      static createSpaceship() {
-         return new Spaceship(6, 40);
+class Spaceship extends InGameObject {
+   constructor(frames, frameSpeed) {
+      super(frames, frameSpeed);
+      this.width = 50;
+      this.height = 50;
+      this.x = 20;
+      this.y = 385;
+      this.speed = 600;
+      this.img = imagesCache.ship;
+      this.hitRadius = 17;
+      this.extraLife = 0;
+      this.isInvisible = false;
+      this.invisibilityTimeOut;
+   }
+   moveSpaceship(dt) {
+      if (input.isDown('LEFT') || input.isDown('a')) {
+         this.x -= this.speed * dt;
+         if (this.x < 0) this.x = 0;
+      }
+      if (input.isDown('RIGHT') || input.isDown('d')) {
+         this.x += this.speed * dt;
+         if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+      }
+      if (input.isDown('DOWN') || input.isDown('s')) {
+         this.y += this.speed * dt;
+         if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+      }
+      if (input.isDown('UP') || input.isDown('w')) {
+         this.y -= this.speed * dt;
+         if (this.y < 0) this.y = 0;
+      }
+      if (input.isDown('SPACE')) {
       }
    }
-
-   class Asteroid extends InGameObject {
-      constructor(width, height, frames, frameSpeed, movingType, img) {
-         super(frames, frameSpeed);
-         this.width = width;
-         this.height = height;
-         this.x = canvas.width;
-         this.y = Math.floor(Math.random() * (800 - height));
-         this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500));
-         this.movingType = movingType;
-         this.img = img;
-         this.hitRadius = (width / 2) - 1;
-         this.destY = Math.floor(Math.random() * (800 - this.height));
-         this.dY = this.y - this.destY;
-      }
+   checkCollision(objectsArr) {
+      let collissions = 0;
+      objectsArr.forEach(element => {
+         if (Math.hypot(Math.abs((this.x + this.width / 2) - (element.x + element.width / 2)), Math.abs((this.y + this.height / 2) - (element.y + element.height / 2))) <= this.hitRadius + element.hitRadius) {
+            collissions++;
+         }
+      })
+      if (collissions > 0) return true
    }
-
-   class AsteroidFactory {
-      static createAsteroid(type) {
-         let typeOptionsMap = {
-            "0": [100, 100, 8, 60, 0, imagesCache.asteroid0],
-            "1": [60, 60, 4, 70, 0, imagesCache.asteroid1],
-            "2": [125, 125, 4, 60, 0, imagesCache.asteroid2],
-            "3": [80, 80, 4, 70, 1, imagesCache.asteroid3],
-            "4": [40, 40, 4, 70, 2, imagesCache.asteroid4],
-            "5": [70, 70, 4, 70, 3, imagesCache.asteroid5],
-            "6": [60, 60, 4, 70, 4, imagesCache.asteroid6],
-         };
-         return new Asteroid(...typeOptionsMap[type]);
-      }
+   addExtraLife() {
+      if (this.extraLife === 1) return
+      this.extraLife = 1;
+      extraLifeImg.classList.remove('hide');
    }
-
-   class PowerUp extends InGameObject {
-      constructor(effect, img) {
-         super(4, 60);
-         this.width = 60;
-         this.height = 40;
-         this.x = canvas.width;
-         this.y = Math.floor(Math.random() * (800 - this.height));
-         this.speed = 700;
-         this.movingType = 0;
-         this.img = img;
-         this.hitRadius = 22.5;
-         this.effect = effect;
-      }
+   invisibility(time) {
+      this.isInvisible = true;
+      this.img = imagesCache.invisibility;
+      clearTimeout(this.invisibilityTimeOut);
+      this.invisibilityTimeOut = setTimeout(() => this.removeInvisibility(), time);
    }
-
-   class PowerUpFactory {
-      static createPowerUp(type) {
-         let typeOptionsMap = {
-            "0": [0, imagesCache.powerUp0],
-            "1": [1, imagesCache.powerUp1],
-            "2": [2, imagesCache.powerUp2],
-            "3": [3, imagesCache.powerUp3],
-         };
-         return new PowerUp(...typeOptionsMap[type]);
-      }
+   removeInvisibility() {
+      this.isInvisible = false;
+      this.img = imagesCache.ship;
    }
+}
 
-   // let spaceship = SpaceshipFactory.createSpaceship();
-   // let asteroids = [];
-   // let powerUps = [];
-   // let powerUpInterval = 15;
-   // let speedRatio = 1;
-   // let baseAsteroidsOnScreen = 3;
-   // let asteroidsInterval = 0;
-   // let spawnAsteroids = false;
-   // let renderFrame = true;
-   // let extraLife = 0;
-   // let score = 0;
-   // let powerUpCounter = 0;
-   // let asteroidsOnScreen = baseAsteroidsOnScreen;
-   // let isGameOver = false;
-   // //let isInvisible = false;
-   // let lastTime = Date.now();
-   // let slowTimeOut;
-   // let invisibilityTimeOut;
+class SpaceshipFactory {
+   static createSpaceship() {
+      return new Spaceship(6, 40);
+   }
+}
 
-   // let playerData = getLocalStorageItem(player);
+class Asteroid extends InGameObject {
+   constructor(width, height, frames, frameSpeed, movingType, img) {
+      super(frames, frameSpeed);
+      this.width = width;
+      this.height = height;
+      this.x = canvas.width;
+      this.y = Math.floor(Math.random() * (800 - height));
+      this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500));
+      this.movingType = movingType;
+      this.img = img;
+      this.hitRadius = (width / 2) - 1;
+      this.destY = Math.floor(Math.random() * (800 - this.height));
+      this.dY = this.y - this.destY;
+   }
+}
 
-   // let oldFlash = document.querySelector('.flash');
-   // if (oldFlash) {
-   //    oldFlash.remove();
-   // }
+class AsteroidFactory {
+   static createAsteroid(type) {
+      let rand = Math.floor(Math.random() * 5);
+      let typeOptionsMap = {
+         "0": [100, 100, 8, 60, 0, imagesCache.asteroid0],
+         "1": [60, 60, 4, 70, 0, imagesCache.asteroid1],
+         "2": [125, 125, 4, 60, 0, imagesCache.asteroid2],
+         "3": [80, 80, 4, 70, 1, imagesCache.asteroid3],
+         "4": [40, 40, 4, 70, 2, imagesCache.asteroid4],
+         "5": [70, 70, 4, 70, 3, imagesCache.asteroid5],
+         "6": [60, 60, 4, 70, 4, imagesCache.asteroid6],
+         "7": [40, 40, 4, 70, 0, imagesCache.asteroid4],
+         "8": [200, 200, 4, 70, 0, imagesCache.asteroid7],
+         "9": [80, 80, 8, 100, rand, imagesCache.asteroid8],
+      };
+      return new Asteroid(...typeOptionsMap[type]);
+   }
+}
 
-   // scoreElement.innerHTML = score;
+class PowerUp extends InGameObject {
+   constructor(effect, img) {
+      super(4, 60);
+      this.width = 60;
+      this.height = 40;
+      this.x = canvas.width;
+      this.y = Math.floor(Math.random() * (800 - this.height));
+      this.speed = 700;
+      this.movingType = 0;
+      this.img = img;
+      this.hitRadius = 22.5;
+      this.effect = effect;
+   }
+}
 
-   // let bg = {
-   //    scroll: 0,
-   //    width: 1250,
-   // };
-   // switch (world) {
-   //    case 1: bg.img = imagesCache.world1; break;
-   //    case 2: bg.img = imagesCache.world2; break;
-   //    case 3: bg.img = imagesCache.world3; break;
-   //    case 4: bg.img = imagesCache.world4; break;
-   //    case 5: bg.img = imagesCache.world5; break;
-   //    case 6: {
-   //       bg.img = imagesCache.world6;
-   //       bg.width = 1600;
-   //    }
-   //       break;
-   // }
-
-   // if (audioBuffer.theme.playing === true) {
-   //    audioBuffer.theme.stop();
-   // }
-   // audioBuffer.start.play(playerData.sfxVolume);
-   // audioBuffer.theme.play(playerData.musicVolume);
-   // openScreen('gamePlayScreen');
-
-   // setTimeout(startSpawn, 2000);
-
-   // loop();
-
-   // function startSpawn() {
-   //    spawnAsteroids = true;
-   // }
-
-   // function loop() {
-   //    let now = Date.now();
-   //    let dt = (now - lastTime) / 1000.0;
-   //    update(dt);
-   //    spaceship.updateSprite(dt);
-   //    asteroids.forEach(element => element.updateSprite(dt));
-   //    powerUps.forEach(element => element.updateSprite(dt));
-   //    renderAll();
-   //    lastTime = now;
-   //    if (renderFrame === true) {
-   //       requestAnimFrame(loop);
-   //    }
-   // };
-
-   // function renderAll() {
-   //    ctx.clearRect(0, 0, canvas.width, canvas.height);
-   //    ctx.drawImage(bg.img, bg.scroll, 0, bg.width - bg.scroll, canvas.height, 0, 0, bg.width - bg.scroll, canvas.height);
-   //    ctx.drawImage(bg.img, 0, 0, bg.scroll, canvas.height, bg.width - bg.scroll, 0, bg.scroll, canvas.height);
-   //    asteroids.forEach(element => element.render());
-   //    powerUps.forEach(element => element.render());
-   //    spaceship.render();
-   // }
-
-   // function update(dt) {
-   //    spaceship.moveSpaceship(dt);
-   //    //moveShip(dt);
-   //    //spaceship.move();
-   //    asteroids.forEach(element => element.move(dt));
-   //    powerUps.forEach(element => element.move(dt));
-   //    // moveObject(dt, asteroids);
-   //    // moveObject(dt, powerUps);
-   //    moveBg(dt);
-   //    removeObject(asteroids);
-   //    removeObject(powerUps);
-   //    if (spaceship.checkCollision(asteroids)) {
-   //       gameOver();
-   //    }
-   //    if (spaceship.checkCollision(powerUps)) {
-   //       spaceship.powerUp(powerUps[0].effect);
-   //    }
-   //    generateAsteroid(dt);
-   // }
-
-   // function updateScore() {
-   //    score++;
-   //    powerUpCounter++;
-   //    scoreElement.innerHTML = score;
-   //    if (powerUpCounter === powerUpInterval) {
-   //       generatePowerUp();
-   //    }
-   //    asteroidsOnScreen = Math.floor(score / 50) + baseAsteroidsOnScreen;
-   //    if (score >= 10 && playerData.endlessMode === false) {
-   //       isGameOver = true;
-   //       if (world < 6) {
-   //          playerData.baseWorlds[world] = 1;
-   //       } else {
-   //          playerData.baseWorldsCompleted = true;
-   //       }
-   //       saveLocalStorageItem(player, playerData);
-   //       setTimeout(worldCompleted, 500)
-   //    }
-   // }
-
-   // function worldCompleted() {
-   //    openScreen('worlCompletedScreen');
-   //    renderFrame = false;
-   //    audioBuffer.theme.stop();
-   //    audioBuffer.levelCompleted.play(playerData.musicVolume);
-   // }
-
-   // function gameOver() {
-   //    if (isInvisible === true) return
-   //    audioBuffer.impact.play(playerData.sfxVolume);
-   //    if (extraLife > 0) {
-   //       extraLife--;
-   //       extraLifeImg.classList.add('hide');
-   //       invisibility(2000);
-   //       return;
-   //    }
-   //    isGameOver = true;
-   //    spaceship.img = imagesCache.alien;
-   //    document.getElementById('scoreGameOver').innerHTML = score;
-   //    if (score > playerData.highScore[world - 1]) {
-   //       playerData.highScore[world - 1] = score;
-   //       saveLocalStorageItem(player, playerData);
-   //    }
-   //    setTimeout(endGame, 1000);
-   // }
-
-   // function endGame() {
-   //    openScreen('gameOverScreen');
-   //    document.querySelector('.gameRestart').dataset.world = world;
-   //    audioBuffer.theme.stop();
-   //    audioBuffer.gameOver.play(playerData.musicVolume);
-   //    renderFrame = false;
-   // }
-
-   // function checkCollision(entity, entities) {
-   //    if (isGameOver === true) return
-   //    let collissions = 0;
-   //    entities.forEach(element => {
-   //       if (Math.hypot(Math.abs((entity.x + entity.width / 2) - (element.x + element.width / 2)), Math.abs((entity.y + entity.height / 2) - (element.y + element.height / 2))) <= entity.hitRadius + element.hitRadius) collissions++
-   //    })
-   //    if (collissions > 0) return true
-   // }
-
-
-
-   // function generateAsteroid(dt) {
-   //    if (spawnAsteroids === false) return
-   //    asteroidsInterval += dt;
-   //    if (asteroids.length > asteroidsOnScreen - 1) return
-   //    if (asteroidsInterval < 0.1) return
-   //    asteroidsInterval = 0;
-   //    let newAsteroid = AsteroidFactory.createAsteroid(4);
-   //    asteroids.push(newAsteroid);
-   // }
-
-   // function removeObject(object) {
-   //    for (let i = 0; i < object.length; i++) {
-   //       if (object[i].x < 0 - object[i].width) {
-   //          object.splice(i, 1);
-   //          if (isGameOver === false) updateScore();
-   //       }
-   //    }
-   // }
-
-   // function moveBg(dt) {
-   //    bg.scroll += 200 * dt;
-   //    if (bg.scroll > bg.width) {
-   //       bg.scroll = 0;
-   //    }
-   // }
-
-   // function moveObject(dt, object) {
-   //    object.forEach(element => {
-   //       element.x -= element.speed * dt;
-   //       if (element.level) {
-   //          switch (element.level) {
-   //             case 2: element.y -= element.speed / (canvas.width / element.dY) * dt; break;
-   //             case 3: element.y += Math.abs(element.x * dt / 10); break;
-   //             case 4: element.y += 5 * Math.sin(element.x / 2.5 * dt); break;
-   //             // case 5: element.y += Math.atan(element.x / dt - 600) * 5;
-   //             case 5: element.y += 500 * Math.tan(element.x / 1200 * dt);
-   //          }
-   //       }
-   //    })
-   // }
-
+class PowerUpFactory {
+   static createPowerUp(type) {
+      let typeOptionsMap = {
+         "0": [0, imagesCache.powerUp0],
+         "1": [1, imagesCache.powerUp1],
+         "2": [2, imagesCache.powerUp2],
+         "3": [3, imagesCache.powerUp3],
+      };
+      return new PowerUp(...typeOptionsMap[type]);
+   }
+}
 
 function getLocalStorageItem(item) {
    return JSON.parse(localStorage.getItem(item));
@@ -884,33 +704,17 @@ function openScreen(id) {
 
 function setAccess() {
    let playerData = getLocalStorageItem(player);
-   let baseWorlds = document.getElementById('baseWorlds').querySelectorAll('.worlds__item');
-   for (let i = 0; i < baseWorlds.length; i++) {
-      if (playerData.baseWorlds[i] === 0) {
-         baseWorlds[i].classList.add('inactive');
+   let worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
+   for (let i = 0; i < worlds.length; i++) {
+      if (playerData.worlds[i - 1] >= 50 || playerData.worlds[i - 1] === undefined) {
+         worlds[i].classList.remove('inactive');
       } else {
-         baseWorlds[i].classList.remove('inactive');
-         baseWorlds[i].querySelector('.worlds__best').innerHTML = playerData.highScore[i];
+         worlds[i].classList.add('inactive');
       }
-   }
-   if (playerData.baseWorldsCompleted === true) {
-      document.querySelector('.endless').classList.remove('inactive');
-      document.getElementById('specialWorlds').classList.remove('inactive');
-   } else {
-      document.querySelector('.endless').classList.add('inactive');
-      document.getElementById('specialWorlds').classList.add('inactive');
+      worlds[i].querySelector('.worlds__best').innerHTML = playerData.worlds[i];
    }
    document.getElementById('music').value = playerData.musicVolume * 100;
    document.getElementById('sfx').value = playerData.sfxVolume * 100;
-   document.getElementById('endless').checked = playerData.endlessMode;
-}
-
-function changeEndlessMode() {
-   let playerData = getLocalStorageItem(player);
-   let newMode = document.getElementById('endless').checked;
-   console.log(newMode);
-   playerData.endlessMode = newMode;
-   saveLocalStorageItem(player, playerData);
 }
 
 function changeVolume() {
@@ -925,13 +729,30 @@ function changeVolume() {
 function setPlayerData() {
    if (getLocalStorageItem(player)) return
    let playerData = {
-      worlds: [1],
-      highScore: [],
-      endlessMode: false,
+      worlds: {
+         "0": 0,
+         "1": 0,
+         "2": 0,
+         "3": 0,
+         "4": 0,
+         "5": 0,
+         "6": 0,
+         "7": 0,
+         "8": 0,
+         "9": 0,
+         "10": 0,
+         "11": 0,
+      },
       musicVolume: 0.6,
       sfxVolume: 0.2,
    }
    saveLocalStorageItem(player, playerData);
+}
+
+function createWorld(world) {
+   openScreen('gamePlayScreen');
+   let newWorld = WorldFactory.createWorld(world);
+   newWorld.loop();
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
@@ -946,21 +767,17 @@ document.addEventListener('DOMContentLoaded', function (event) {
       if (event.target.classList.contains('gameRestart')) {
          audioBuffer.click.play(playerData.sfxVolume);
          audioBuffer.theme.play(playerData.musicVolume);
-         let newWorld = WorldFactory.createWorld(parseInt(event.target.dataset.world))
-         newWorld.loop();
+         createWorld(event.target.dataset.world);
       }
    });
-   document.getElementById('baseWorlds').querySelectorAll('.worlds__item').forEach(element => {
+   document.getElementById('worlds').querySelectorAll('.worlds__item').forEach(element => {
       element.addEventListener('click', function (event) {
          audioBuffer.click.play(playerData.sfxVolume);
          audioBuffer.theme.play(playerData.musicVolume);
-         openScreen('gamePlayScreen');
-         let newWorld = WorldFactory.createWorld(1);
-         newWorld.loop();
+         createWorld(event.target.closest('.worlds__item').dataset.world);
       })
    })
    document.querySelectorAll('.screen__range').forEach(element => {
       element.addEventListener('input', changeVolume, false);
    })
-   document.getElementById('endless').addEventListener('input', changeEndlessMode, false);
 });
