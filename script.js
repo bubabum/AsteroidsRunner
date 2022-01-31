@@ -122,6 +122,7 @@ function loadResources() {
       world4: 'img/maps/level4.jpg',
       world5: 'img/maps/level5.jpg',
       world6: 'img/maps/level6.jpg',
+      world7: 'img/maps/level7.jpg',
    }
    let urls = [];
 
@@ -347,7 +348,6 @@ class World {
       this.background.move(dt);
    }
    updateScore() {
-      //if(this.isGameOver = true) return;
       this.score++;
       this.powerUpCounter++;
       if (this.powerUpCounter === this.powerUpInterval) {
@@ -358,7 +358,6 @@ class World {
          this.isGameOver = true;
          this.playerData.worlds[this.world] = this.score;
          this.savePLayerData();
-         //this.flash();
          setTimeout(() => this.worldCompleted(), 500);
       }
    }
@@ -475,9 +474,9 @@ class WorldFactory {
 }
 
 class Background {
-   constructor(width, img) {
-      this.width = width;
+   constructor(img, width) {
       this.img = img;
+      this.width = img.naturalWidth; 
       this.scroll = 0;
    }
    move(dt) {
@@ -494,7 +493,7 @@ class Background {
 
 class BackgroundFactory {
    static createBackground(type) {
-      let randomIndex = Math.floor(Math.random() * 6);
+      let randomIndex = Math.floor(Math.random() * 7);
       let randomBackround;
       switch (randomIndex) {
          case 0: randomBackround = imagesCache.world1; break;
@@ -503,21 +502,19 @@ class BackgroundFactory {
          case 3: randomBackround = imagesCache.world4; break;
          case 4: randomBackround = imagesCache.world5; break;
          case 5: randomBackround = imagesCache.world6; break;
-      }
-      let width = 1250;
-      if (randomBackround === imagesCache.world6) {
-         width = 1600;
+         case 6: randomBackround = imagesCache.world7; break;
       }
       let typeOptionsMap = {
-         "1": [1250, imagesCache.world1],
-         "2": [1250, imagesCache.world2],
-         "3": [1250, imagesCache.world3],
-         "4": [1250, imagesCache.world4],
-         "5": [1250, imagesCache.world5],
-         "6": [1600, imagesCache.world6],
-         "7": [width, randomBackround],
+         "1": imagesCache.world1,
+         "2": imagesCache.world2,
+         "3": imagesCache.world3,
+         "4": imagesCache.world4,
+         "5": imagesCache.world5,
+         "6": imagesCache.world6,
+         "7": imagesCache.world7,
+         "8": randomBackround,
       };
-      return new Background(...typeOptionsMap[type]);
+      return new Background(typeOptionsMap[type]);
    }
 }
 
@@ -723,15 +720,16 @@ function openScreen(id) {
 }
 
 function addWorlds() {
-   let worlds = JSON.parse(localStorage.getItem('player')).worlds;
-   console.log(worlds);
+   const worlds = JSON.parse(localStorage.getItem('player')).worlds;
    const worldsElement = document.getElementById('worlds');
    for (key in worlds) {
+      let img = parseInt(key) + 1 + 's';
+      if (parseInt(key) > 6) {
+         img = 'rand';
+      }
       worldsElement.insertAdjacentHTML('beforeend', `
          <div data-world="${parseInt(key)}" class="worlds__item">
-            <div class="worlds__img img">
-               <img src="img/maps/level${parseInt(key) + 1}.jpg" alt="">
-            </div>
+            <img src="img/maps/level${img}.jpg" alt="" class="worlds__img">
             <div class="worlds__caption">World ${parseInt(key) + 1}</div>
             <div class="worlds__score">High score: <span class="worlds__best">${worlds[key]}</span></div>
          </div>
@@ -740,8 +738,8 @@ function addWorlds() {
 }
 
 function setAccess() {
-   let playerData = getLocalStorageItem(player);
-   let worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
+   const playerData = getLocalStorageItem(player);
+   const worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
    for (let i = 0; i < worlds.length; i++) {
       if (playerData.worlds[i - 1] >= 300 || playerData.worlds[i - 1] === undefined) {
          worlds[i].classList.remove('inactive');
@@ -752,7 +750,6 @@ function setAccess() {
    }
    document.getElementById('music').value = playerData.musicVolume * 100;
    document.getElementById('sfx').value = playerData.sfxVolume * 100;
-   //extraLifeImg.classList.add('hide');
 }
 
 function changeVolume() {
@@ -789,6 +786,8 @@ function setPlayerData() {
 
 function createWorld(world) {
    openScreen('gamePlayScreen');
+   audioBuffer.click.play(getLocalStorageItem(player).sfxVolume);
+   audioBuffer.theme.play(getLocalStorageItem(player).musicVolume);
    let newWorld = WorldFactory.createWorld(world);
 }
 
@@ -796,22 +795,17 @@ document.addEventListener('DOMContentLoaded', function (event) {
    setPlayerData();
    addWorlds();
    loadResources();
-   let playerData = getLocalStorageItem(player);
    document.addEventListener('click', function (event) {
       if (event.target.classList.contains('screen__btn')) {
-         audioBuffer.click.play(playerData.sfxVolume);
+         audioBuffer.click.play(getLocalStorageItem(player).sfxVolume);
          openScreen(event.target.dataset.screen);
       }
       if (event.target.classList.contains('gameRestart')) {
-         audioBuffer.click.play(playerData.sfxVolume);
-         audioBuffer.theme.play(playerData.musicVolume);
          createWorld(event.target.dataset.world);
       }
    });
    document.getElementById('worlds').querySelectorAll('.worlds__item').forEach(element => {
       element.addEventListener('click', function (event) {
-         audioBuffer.click.play(playerData.sfxVolume);
-         audioBuffer.theme.play(playerData.musicVolume);
          createWorld(event.target.closest('.worlds__item').dataset.world);
       })
    })

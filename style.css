@@ -74,7 +74,7 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
 .title{
    color: rgb(217, 160, 255);
    font-family: 'Gloria Hallelujah', cursive;
-   margin: 1.5rem 0;
+   margin: 5rem 0;
 }
 .title_size_m{
    font-size: 8rem;
@@ -121,9 +121,6 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    display: flex;
    align-items: center;
 }
-a.caption{
-   text-decoration: none;
-}
 .caption{
    color: #fff;
    font-size: 20px;
@@ -134,7 +131,6 @@ a.caption{
    width: 50px;
    margin: 10px;
 }
-.img img,
 .catch__img img{
    height: 100%;
    width: 100%;
@@ -176,6 +172,8 @@ a.caption{
 }
 .background__img{
    z-index: 1;
+   max-width: 1200px;
+   height: 850px;
 }
 .game-over__caption{
    margin: 50px 0;
@@ -263,56 +261,25 @@ a.caption{
    opacity: 1;
 }
 .worlds__img{
+   border-radius: 20px;
    max-width: 150px;
    transition: 0.3s;
    overflow: hidden;
 }
-.worlds__img img{
-   border-radius: 20px;
-}
 .worlds__caption{
    color: #fff;
-   font-size: 18px;
-   margin: 10px 0;
+   font-size: 1.125rem;
+   margin: 0.625rem 0;
    transition: 0.3s;
 }
 .worlds__score{
    position: absolute;
-   color: #aaa;
-   font-size: 12px;
    top: 40%;
-   margin: 10px 0;
+   color: #aaa;
+   font-size: 0.75rem;
+   margin: 0.625rem 0;
    transition: 0.3s;
    opacity: 0;
-}
-.endless{
-   display: flex;
-   transform: translate(20px, 0px);
-}
-.endless.inactive{
-   opacity: 0.1;
-   pointer-events: none;
-}
-.endless__caption{
-   color: #fff;
-   font-size: 25px;
-   margin: 20px 0;
-}
-#endless{
-   display: none;
-}
-.endless__caption::before{
-   content: "";
-   display: block;
-   transform: translate(-50px, 35px);
-   width: 30px;
-   height: 30px;
-   border: 2px solid #fff;
-   border-radius: 10px;
-   transition: 0.3s;
-}
-#endless:checked+.endless__caption::before{
-   background-color: #fff;
 }
 .screen__range {
    margin-top: 30px;
