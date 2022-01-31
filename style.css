@@ -71,10 +71,7 @@ body{
 }
 .life__img{
    width: 40px;
-   margin: 0 10px;
-}
-.life__img.hide{
-   opacity: 0;
+   margin: 0 5px;
 }
 .score{
    position: absolute;

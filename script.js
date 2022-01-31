@@ -101,6 +101,7 @@ function loadResources() {
    let imagesUrls = {
       alien: 'img/alien.png',
       ship: 'img/ship.png',
+      life: 'img/life.png',
       invisibility: 'img/invisibility.png',
       asteroid0: 'img/ast0.png',
       asteroid1: 'img/ast1.png',
@@ -250,24 +251,25 @@ class World {
       this.maxAsteroidType = maxAsteroidType;
       this.speedMultiplier = speedMultiplier;
       this.darkness = darkness;
-      this.background = BackgroundFactory.createBackground(background);
       this.world = world;
+      this.background = BackgroundFactory.createBackground(background);
       this.spaceship = SpaceshipFactory.createSpaceship();
       this.asteroids = [];
       this.powerUps = [];
       this.powerUpInterval = 15;
       this.speedRatio = 1;
       this.baseAsteroidsOnScreen = 3;
+      this.asteroidsOnScreen = this.baseAsteroidsOnScreen;
       this.asteroidsInterval = 0;
-      this.spawnAsteroids = false;
-      this.renderFrame = true;
       this.score = 0;
       this.powerUpCounter = 0;
-      this.asteroidsOnScreen = this.baseAsteroidsOnScreen;
+      this.spawnAsteroids = false;
+      this.renderFrame = true;
       this.isGameOver = false;
       this.lastTime = Date.now();
       this.slowTimeOut;
-      this.playerData = getLocalStorageItem(player);
+      this.playerData = JSON.parse(localStorage.getItem('player'));
+      this.loop();
    }
    loop() {
       let now = Date.now();
@@ -285,6 +287,20 @@ class World {
       this.asteroids.forEach(element => element.render());
       this.powerUps.forEach(element => element.render());
       this.spaceship.render();
+      this.renderData();
+   }
+   renderData () {
+      scoreElement.innerHTML = this.score;
+      let lives = document.querySelectorAll('.life__img');
+      if (lives.length > 0) {
+         lives.forEach(element => element.remove());
+      }
+      if (this.spaceship.extraLife === 0) return;
+      for (let i = 0; i < this.spaceship.extraLife; i++) {
+         let lifeImg = imagesCache.life.cloneNode(false);
+         lifeImg.classList.add('life__img');
+         document.querySelector('.life').appendChild(lifeImg);
+      }
    }
    update(dt) {
       this.moveObjects(dt)
@@ -331,9 +347,9 @@ class World {
       this.background.move(dt);
    }
    updateScore() {
+      //if(this.isGameOver = true) return;
       this.score++;
       this.powerUpCounter++;
-      scoreElement.innerHTML = this.score;
       if (this.powerUpCounter === this.powerUpInterval) {
          this.generatePowerUp();
       }
@@ -341,13 +357,16 @@ class World {
       if (this.score >= 300 && this.playerData.worlds[this.world] < 300) {
          this.isGameOver = true;
          this.playerData.worlds[this.world] = this.score;
-         saveLocalStorageItem(player, this.playerData);
-         setTimeout(() => this.worldCompleted(), 500)
+         this.savePLayerData();
+         //this.flash();
+         setTimeout(() => this.worldCompleted(), 500);
       }
+   }
+   savePLayerData() {
+      localStorage.setItem('player', JSON.stringify(this.playerData)); 
    }
    worldCompleted() {
       openScreen('worlCompletedScreen');
-      scoreElement.innerHTML = 0;
       this.renderFrame = false;
       audioBuffer.theme.stop();
       audioBuffer.levelCompleted.play(this.playerData.musicVolume);
@@ -387,7 +406,6 @@ class World {
       audioBuffer.impact.play(this.playerData.sfxVolume);
       if (this.spaceship.extraLife > 0) {
          this.spaceship.extraLife--;
-         extraLifeImg.classList.add('hide');
          this.spaceship.invisibility(2000);
          return;
       }
@@ -396,12 +414,11 @@ class World {
       document.getElementById('scoreGameOver').innerHTML = this.score;
       if (this.score > this.playerData.worlds[this.world]) {
          this.playerData.worlds[this.world] = this.score;
-         saveLocalStorageItem(player, this.playerData);
+         this.savePLayerData();
       }
       setTimeout(() => {
          openScreen('gameOverScreen');
          document.querySelector('.gameRestart').dataset.world = this.world;
-         scoreElement.innerHTML = 0;
          audioBuffer.theme.stop();
          audioBuffer.gameOver.play(this.playerData.musicVolume);
          this.renderFrame = false;
@@ -464,7 +481,7 @@ class Background {
       this.scroll = 0;
    }
    move(dt) {
-      this.scroll += 200 * dt;
+      this.scroll += 150 * dt;
       if (this.scroll > this.width) {
          this.scroll = 0;
       }
@@ -567,10 +584,11 @@ class Spaceship extends InGameObject {
       this.height = 50;
       this.x = 20;
       this.y = 385;
-      this.speed = 600;
+      this.speed = 500;
       this.img = imagesCache.ship;
       this.hitRadius = 17;
       this.extraLife = 0;
+      this.maxExtraLife = 1;
       this.isInvisible = false;
       this.invisibilityTimeOut;
    }
@@ -604,9 +622,11 @@ class Spaceship extends InGameObject {
       if (collissions > 0) return true
    }
    addExtraLife() {
-      if (this.extraLife === 1) return
-      this.extraLife = 1;
-      extraLifeImg.classList.remove('hide');
+      if (this.extraLife === this.maxExtraLife) return
+      this.extraLife++;
+   }
+   removeExtraLife() {
+
    }
    invisibility(time) {
       this.isInvisible = true;
@@ -706,7 +726,7 @@ function setAccess() {
    let playerData = getLocalStorageItem(player);
    let worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
    for (let i = 0; i < worlds.length; i++) {
-      if (playerData.worlds[i - 1] >= 50 || playerData.worlds[i - 1] === undefined) {
+      if (playerData.worlds[i - 1] >= 300 || playerData.worlds[i - 1] === undefined) {
          worlds[i].classList.remove('inactive');
       } else {
          worlds[i].classList.add('inactive');
@@ -715,6 +735,7 @@ function setAccess() {
    }
    document.getElementById('music').value = playerData.musicVolume * 100;
    document.getElementById('sfx').value = playerData.sfxVolume * 100;
+   //extraLifeImg.classList.add('hide');
 }
 
 function changeVolume() {
@@ -752,7 +773,6 @@ function setPlayerData() {
 function createWorld(world) {
    openScreen('gamePlayScreen');
    let newWorld = WorldFactory.createWorld(world);
-   newWorld.loop();
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
