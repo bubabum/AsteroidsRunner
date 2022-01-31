@@ -289,7 +289,7 @@ class World {
       this.spaceship.render();
       this.renderData();
    }
-   renderData () {
+   renderData() {
       scoreElement.innerHTML = this.score;
       let lives = document.querySelectorAll('.life__img');
       if (lives.length > 0) {
@@ -363,7 +363,7 @@ class World {
       }
    }
    savePLayerData() {
-      localStorage.setItem('player', JSON.stringify(this.playerData)); 
+      localStorage.setItem('player', JSON.stringify(this.playerData));
    }
    worldCompleted() {
       openScreen('worlCompletedScreen');
@@ -722,6 +722,23 @@ function openScreen(id) {
    setAccess();
 }
 
+function addWorlds() {
+   let worlds = JSON.parse(localStorage.getItem('player')).worlds;
+   console.log(worlds);
+   const worldsElement = document.getElementById('worlds');
+   for (key in worlds) {
+      worldsElement.insertAdjacentHTML('beforeend', `
+         <div data-world="${parseInt(key)}" class="worlds__item">
+            <div class="worlds__img img">
+               <img src="img/maps/level${parseInt(key) + 1}.jpg" alt="">
+            </div>
+            <div class="worlds__caption">World ${parseInt(key) + 1}</div>
+            <div class="worlds__score">High score: <span class="worlds__best">${worlds[key]}</span></div>
+         </div>
+	   `);
+   }
+}
+
 function setAccess() {
    let playerData = getLocalStorageItem(player);
    let worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
@@ -777,6 +794,7 @@ function createWorld(world) {
 
 document.addEventListener('DOMContentLoaded', function (event) {
    setPlayerData();
+   addWorlds();
    loadResources();
    let playerData = getLocalStorageItem(player);
    document.addEventListener('click', function (event) {
