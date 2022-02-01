@@ -100,16 +100,29 @@
          <div class="screen">
             <h2 class="title title_size_s">Choose world:</h2>
             <div id="worlds" class="worlds"></div>
+            <button data-screen="gameUpgradeScreen" class="screen__btn">Upgrades</button>
             <button data-screen="gameStartScreen" class="screen__btn">Back</button>
          </div>
          <div class="background">
             <img src="img/background2.jpg" alt="" class="background__img">
          </div>
       </div>
-      <div id="gameSpecialScreen" class="game-screen">
+      <div id="gameUpgradeScreen" class="game-screen">
          <div class="screen">
-            <h2 class="title title_size_s">Choose world:</h2>
-            <div id="baseWorlds" class="worlds">
+            <h2 class="title title_size_s">Upgrades:</h2>
+            <div id="upgrades" class="upgrades">
+               <div data-world="" class="upgrades__item">
+                  <img src="img/upgrade0.png" alt="" class="upgrades__img">
+                  <div class="caption">Increase speed</div>
+               </div>
+               <div data-world="" class="upgrades__item">
+                  <img src="img/upgrade1.png" alt="" class="upgrades__img">
+                  <div class="caption">2 extra lives</div>
+               </div>
+               <div data-world="" class="upgrades__item">
+                  <img src="img/upgrade2.png" alt="" class="upgrades__img">
+                  <div class="caption">Flash charge</div>
+               </div>
             </div>
             <button data-screen="gameLevelScreen" class="screen__btn">Back</button>
          </div>

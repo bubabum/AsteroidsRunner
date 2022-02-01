@@ -124,7 +124,8 @@ function loadResources() {
       world6: 'img/maps/level6.jpg',
       world7: 'img/maps/level7.jpg',
    }
-   let urls = [];
+
+   let urls = Object.values(audioUrls);
 
    class Buffer {
       constructor(context, urls) {
@@ -209,9 +210,6 @@ function loadResources() {
    }
 
    function loadSounds() {
-      for (key in audioUrls) {
-         urls.push(audioUrls[key]);
-      }
       context = new (window.AudioContext || window.webkitAudioContext)();
       bufferLoader = new Buffer(context, urls);
       bufferLoader.urls.forEach(element => bufferLoader.loadSound(element, bufferLoader.urls.indexOf(element)));
@@ -434,7 +432,7 @@ class World {
    flash() {
       let flash = document.createElement('div');
       flash.classList.add('flash');
-      document.body.append(flash);
+      document.querySelector('.wrapper').append(flash);
       this.score += this.asteroids.length;
       this.updateScore();
       this.asteroids = [];
@@ -448,7 +446,7 @@ class World {
       if (document.querySelector('.darkness') || this.darkness === false) return
       let darkness = document.createElement('div');
       darkness.classList.add('darkness');
-      document.body.append(darkness);
+      document.querySelector('.wrapper').append(darkness);
       setTimeout(() => darkness.remove(), 5000);
    }
 }
@@ -476,7 +474,7 @@ class WorldFactory {
 class Background {
    constructor(img, width) {
       this.img = img;
-      this.width = img.naturalWidth; 
+      this.width = img.naturalWidth;
       this.scroll = 0;
    }
    move(dt) {
