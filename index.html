@@ -2,171 +2,149 @@
 <html lang="en">
 
 <head>
-   <meta charset="UTF-8">
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
-   <title>Asteroids Runner</title>
-   <link rel="stylesheet" type="text/css" href="style.css">
-   <link rel="shortcut icon" href="img/loader.png">
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
+	<title>Asteroids Runner</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="shortcut icon" href="img/loader.png">
 </head>
 
 <body>
-   <div class="wrapper">
-      <div id="gameStartScreen" class="game-screen">
-         <div class="screen">
-            <h1 class="title title_size_m">Asteroids Runner</h1>
-            <button data-screen="gameLevelScreen" class="screen__btn">Start Game</button>
-            <button data-screen="howToPlayScreen" class="screen__btn">How to play</button>
-            <button data-screen="optionsScreen" class="screen__btn">Options</button>
-            <button data-screen="creditsScreen" class="screen__btn">Credits</button>
-         </div>
-         <div class="background">
-            <img src="img/background.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="optionsScreen" class="game-screen">
-         <div class="screen">
-            <div class="caption">Volume:</div>
-            <input id="music" class="screen__range" type="range" min="0" max="100">
-            <label for="music" class="caption">Music</label>
-            <input id="sfx" class="screen__range" type="range" min="0" max="100">
-            <label for="sfx" class="caption">SFX</label>
-            <button data-screen="gameStartScreen" class="screen__btn">Back</button>
-         </div>
-         <div class="background">
-            <img src="img/background.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="howToPlayScreen" class="game-screen">
-         <div class="screen">
-            <div class="caption">Use WASD or Arrows for move</div>
-            <div class="avoid">
-               <div class="caption">Avoid this dudes:</div>
-               <img src="img/avoid1.png" alt="" class="avoid__img">
-               <img src="img/avoid2.png" alt="" class="avoid__img">
-            </div>
-            <div class="caption">Catch your friends: </div>
-            <div class="catch">
-               <div class="catch__item">
-                  <div class="catch__img">
-                     <img src="img/catch0.png" alt="">
-                  </div>
-                  <div class="caption">Slow all asteroids</div>
-               </div>
-               <div class="catch__item">
-                  <div class="catch__img">
-                     <img src="img/catch1.png" alt="">
-                  </div>
-                  <div class="caption">Massive explosion</div>
-               </div>
-               <div class="catch__item">
-                  <div class="catch__img">
-                     <img src="img/catch2.png" alt="">
-                  </div>
-                  <div class="caption">Invisibility</div>
-               </div>
-               <div class="catch__item">
-                  <div class="catch__img">
-                     <img src="img/catch3.png" alt="">
-                  </div>
-                  <div class="caption">Gives you extra life</div>
-               </div>
-            </div>
-            <div class="caption">You need to score 300 points to complete a world.</div>
-            <div class="caption">If you complete all worlds, you can play in endless mode.</div>
-            <div class="caption">All your progress will be saved, even if you turn off your PC!</div>
-            <button data-screen="gameStartScreen" class="screen__btn">Back</button>
-         </div>
-         <div class="background">
-            <img src="img/background3.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="creditsScreen" class="game-screen">
-         <div class="screen">
-            <h2 class="title title_size_s">Game created by Mykola Kyslyi</h2>
-            <div class="caption">Space Jazz by Kevin MacLeod</div>
-            <a class="caption" href="https://incompetech.filmmusic.io/song/8328-space-jazz" target="_blank">https://incompetech.filmmusic.io/song/8328-space-jazz</a>
-            <a class="caption" href="https://filmmusic.io/standard-license" target="_blank">https://filmmusic.io/standard-license</a>
-            <button data-screen="gameStartScreen" class="screen__btn">Back</button>
-         </div>
-         <div class="background">
-            <img src="img/background3.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="gameLevelScreen" class="game-screen">
-         <div class="screen">
-            <h2 class="title title_size_s">Choose world:</h2>
-            <div id="worlds" class="worlds"></div>
-            <button data-screen="gameUpgradeScreen" class="screen__btn">Upgrades</button>
-            <button data-screen="gameStartScreen" class="screen__btn">Back</button>
-         </div>
-         <div class="background">
-            <img src="img/background2.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="gameUpgradeScreen" class="game-screen">
-         <div class="screen">
-            <h2 class="title title_size_s">Upgrades:</h2>
-            <div id="upgrades" class="upgrades">
-               <div data-world="" class="upgrades__item">
-                  <img src="img/upgrade0.png" alt="" class="upgrades__img">
-                  <div class="caption">Increase speed</div>
-               </div>
-               <div data-world="" class="upgrades__item">
-                  <img src="img/upgrade1.png" alt="" class="upgrades__img">
-                  <div class="caption">2 extra lives</div>
-               </div>
-               <div data-world="" class="upgrades__item">
-                  <img src="img/upgrade2.png" alt="" class="upgrades__img">
-                  <div class="caption">Flash charge</div>
-               </div>
-            </div>
-            <button data-screen="gameLevelScreen" class="screen__btn">Back</button>
-         </div>
-         <div class="background">
-            <img src="img/background2.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="gameOverScreen" class="game-screen">
-         <div class="screen">
-            <div class="game-over__caption">Game Over</div>
-            <div class="game-over__caption">You scored: <span id="scoreGameOver"></span></div>
-            <button data-screen="gamePlayScreen" class="screen__btn gameRestart">Restart</button>
-            <button data-screen="gameLevelScreen" class="screen__btn">Change World</button>
-         </div>
-         <div class="background">
-            <img src="img/background4.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="worlCompletedScreen" class="game-screen">
-         <div class="screen">
-            <div class="game-over__caption">World completed!</div>
-            <button data-screen="gameLevelScreen" class="screen__btn">Next world</button>
-         </div>
-         <div class="background">
-            <img src="img/background5.jpg" alt="" class="background__img">
-         </div>
-      </div>
-      <div id="gamePlayScreen" class="game-screen">
-         <div class="status">
-            <div class="life">
-               <div class="life__caption">Extra life:</div>
-            </div>
-            <div class="score">Score: <span id='score'>0</span></div>
-         </div>
-      </div>
-      <div id="loadingScreen" class="game-screen">
-         <div class="screen">
-            <img src="img/loader.png" alt="" class="loader">
-            <div class="caption">Loading...</div>
-            <div class="progress-bar"><span class="progress-bar__status"></span></div>
-         </div>
-      </div>
-   </div>
-   <script src="script.js"></script>
+	<div class="wrapper">
+		<div id="loading" class="game-screen active">
+			<div class="screen">
+				<img src="img/loader.png" alt="" class="loader">
+				<div class="caption">Loading...</div>
+				<div class="progress-bar"><span class="progress-bar__status"></span></div>
+			</div>
+		</div>
+		<div id="main" class="game-screen">
+			<div class="screen">
+				<h1 class="title title_size_m">Asteroids Runner</h1>
+				<button data-screen="worlds" class="screen__btn">Start Game</button>
+				<button data-screen="howToPlay" class="screen__btn">How to play</button>
+				<button data-screen="options" class="screen__btn">Options</button>
+				<button data-screen="credits" class="screen__btn">Credits</button>
+			</div>
+			<div class="background">
+				<img src="img/background.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="options" class="game-screen">
+			<div class="screen">
+				<div class="caption">Volume:</div>
+				<input id="music" class="screen__range" type="range" min="0" max="100">
+				<label for="music" class="caption">Music</label>
+				<input id="sfx" class="screen__range" type="range" min="0" max="100">
+				<label for="sfx" class="caption">SFX</label>
+				<button data-screen="main" class="screen__btn">Back</button>
+			</div>
+			<div class="background">
+				<img src="img/background.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="howToPlay" class="game-screen">
+			<div class="screen">
+				<div class="guide">
+					<div class="caption">Use WASD or Arrows for move</div>
+					<div class="guide">
+						<div class="guide__caption">Avoid this dudes:</div>
+						<img src="img/avoid1.png" alt="" class="avoid__img">
+						<img src="img/avoid2.png" alt="" class="avoid__img">
+					</div>
+					<div class="caption">Catch your friends: </div>
+					<div class="catch">
+						<div class="catch__item">
+							<div class="catch__img">
+								<img src="img/catch0.png" alt="">
+							</div>
+							<div class="caption">Slow all asteroids</div>
+						</div>
+						<div class="catch__item">
+							<div class="catch__img">
+								<img src="img/catch1.png" alt="">
+							</div>
+							<div class="caption">Massive explosion</div>
+						</div>
+						<div class="catch__item">
+							<div class="catch__img">
+								<img src="img/catch2.png" alt="">
+							</div>
+							<div class="caption">Invisibility</div>
+						</div>
+						<div class="catch__item">
+							<div class="catch__img">
+								<img src="img/catch3.png" alt="">
+							</div>
+							<div class="caption">Gives you extra life</div>
+						</div>
+					</div>
+					<div class="caption">You need to score 300 points to complete a world.</div>
+					<div class="caption">If you complete all worlds, you can play in endless mode.</div>
+					<div class="caption">All your progress will be saved, even if you turn off your PC!</div>
+				</div>
+				<button data-screen="main" class="screen__btn">Back</button>
+			</div>
+			<div class="background">
+				<img src="img/background3.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="credits" class="game-screen">
+			<div class="screen">
+				<h2 class="title title_size_s">Game created by Mykola Kyslyi</h2>
+				<div class="caption">Space Jazz by Kevin MacLeod</div>
+				<a class="caption" href="https://incompetech.filmmusic.io/song/8328-space-jazz" target="_blank">https://incompetech.filmmusic.io/song/8328-space-jazz</a>
+				<a class="caption" href="https://filmmusic.io/standard-license" target="_blank">https://filmmusic.io/standard-license</a>
+				<button data-screen="main" class="screen__btn">Back</button>
+			</div>
+			<div class="background">
+				<img src="img/background3.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="worlds" class="game-screen">
+			<div class="screen">
+				<h2 class="title title_size_s">Choose world:</h2>
+				<div class="worlds"></div>
+				<button data-screen="main" class="screen__btn">Back</button>
+			</div>
+			<div class="background">
+				<img src="img/background2.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="gameOver" class="game-screen">
+			<div class="screen">
+				<div class="game-over__caption">Game Over</div>
+				<div class="game-over__caption">You scored: <span id="scoreGameOver"></span></div>
+				<button data-screen="game" class="screen__btn gameRestart">Restart</button>
+				<button data-screen="worlds" class="screen__btn">Change World</button>
+			</div>
+			<div class="background">
+				<img src="img/background4.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="completed" class="game-screen">
+			<div class="screen">
+				<div class="game-over__caption">World completed!</div>
+				<button data-screen="worlds" class="screen__btn">Next world</button>
+			</div>
+			<div class="background">
+				<img src="img/background5.jpg" alt="" class="background__img">
+			</div>
+		</div>
+		<div id="game" class="game-screen">
+			<div class="status">
+				<div class="life">
+					<div class="life__caption">Extra life:</div>
+				</div>
+				<div class="score">Score: <span id="score"></span></div>
+			</div>
+		</div>
+	</div>
+	<script src="script.js"></script>
 </body>
 
 </html>
