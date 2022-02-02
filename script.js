@@ -267,7 +267,13 @@ class World {
 		this.lastTime = Date.now();
 		this.slowTimeOut;
 		this.playerData = JSON.parse(localStorage.getItem('player'));
+		this.removeAllStates();
 		this.loop();
+	}
+	removeAllStates() {
+		const states = document.querySelectorAll('.state');
+		if (states.length === 0) return;
+		states.forEach(element => element.remove());
 	}
 	loop() {
 		let now = Date.now();
@@ -351,7 +357,7 @@ class World {
 			this.generatePowerUp();
 		}
 		this.asteroidsOnScreen = Math.floor(this.score / 50) + this.baseAsteroidsOnScreen;
-		if (this.score >= 300 && this.playerData.worlds[this.world] < 300) {
+		if (this.score >= 10 && this.playerData.worlds[this.world] < 300) {
 			this.isGameOver = true;
 			this.playerData.worlds[this.world] = this.score;
 			this.savePLayerData();
@@ -362,8 +368,9 @@ class World {
 		localStorage.setItem('player', JSON.stringify(this.playerData));
 	}
 	worldCompleted() {
-		openScreen('worlCompletedScreen');
-		this.renderFrame = false;
+		this.addState(this.completedState());
+		// openScreen('completed');
+		// this.renderFrame = false;
 		audioBuffer.theme.stop();
 		audioBuffer.levelCompleted.play(this.playerData.musicVolume);
 	}
@@ -407,18 +414,37 @@ class World {
 		}
 		this.isGameOver = true;
 		this.spaceship.img = imagesCache.alien;
-		document.getElementById('scoreGameOver').innerHTML = this.score;
+		//document.getElementById('scoreGameOver').innerHTML = this.score;
 		if (this.score > this.playerData.worlds[this.world]) {
 			this.playerData.worlds[this.world] = this.score;
 			this.savePLayerData();
 		}
 		setTimeout(() => {
-			openScreen('gameOverScreen');
-			document.querySelector('.gameRestart').dataset.world = this.world;
+			this.addState(this.gameOverState());
+			//openScreen('gameOver');
+			//document.querySelector('.gameRestart').dataset.world = this.world;
 			audioBuffer.theme.stop();
 			audioBuffer.gameOver.play(this.playerData.musicVolume);
-			this.renderFrame = false;
+			//this.renderFrame = false;
 		}, 1000);
+	}
+	addState(markUp) {
+		const state = document.createElement('div');
+		state.classList.add('state');
+		state.innerHTML = markUp;
+		document.getElementById('game').append(state);
+	}
+	gameOverState() {
+		const markUp = `<div class="title title_size_m">Game Over</div>
+							<div class="caption">You scored: <span>${this.score}</span></div>
+							<button data-world="${this.world}" class="screen__btn gameRestart">Restart</button>
+							<button data-screen="worlds" class="screen__btn">Change World</button>`;
+		return markUp;
+	}
+	completedState() {
+		const markUp = `<div class="title title_size_m">World completed!</div>
+							<button data-screen="worlds" class="screen__btn">Next world</button>`;
+		return markUp;
 	}
 	slowAsteroids() {
 		if (this.speedRatio === 1) {
@@ -782,7 +808,7 @@ function setPlayerData() {
 }
 
 function createWorld(world) {
-	openScreen('gamePlayScreen');
+	openScreen('game');
 	audioBuffer.click.play(getLocalStorageItem(player).sfxVolume);
 	audioBuffer.theme.play(getLocalStorageItem(player).musicVolume);
 	let newWorld = WorldFactory.createWorld(world);

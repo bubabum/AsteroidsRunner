@@ -18,7 +18,7 @@
 		<div id="loading" class="game-screen active">
 			<div class="screen">
 				<img src="img/loader.png" alt="" class="loader">
-				<div class="caption">Loading...</div>
+				<div class="title title_size_s">Loading...</div>
 				<div class="progress-bar"><span class="progress-bar__status"></span></div>
 			</div>
 		</div>
@@ -50,42 +50,48 @@
 		<div id="howToPlay" class="game-screen">
 			<div class="screen">
 				<div class="guide">
-					<div class="caption">Use WASD or Arrows for move</div>
-					<div class="guide">
-						<div class="guide__caption">Avoid this dudes:</div>
-						<img src="img/avoid1.png" alt="" class="avoid__img">
-						<img src="img/avoid2.png" alt="" class="avoid__img">
+					<div class="guide__caption caption">Use WASD or Arrows for move</div>
+					<div class="guide__caption caption">Avoid this dudes:</div>
+					<div class="guide__block">
+						<div class="guide__img">
+							<img src="img/avoid1.png" alt="">
+						</div>
+						<div class="guide__img">
+							<img src="img/avoid2.png" alt="">
+						</div>
 					</div>
-					<div class="caption">Catch your friends: </div>
-					<div class="catch">
-						<div class="catch__item">
-							<div class="catch__img">
+					<div class="guide__caption caption">Catch your friends: </div>
+					<div class="guide__block">
+						<div class="guide__item">
+							<div class="guide__img">
 								<img src="img/catch0.png" alt="">
 							</div>
-							<div class="caption">Slow all asteroids</div>
+							<div class="guide__caption caption">Slow all asteroids</div>
 						</div>
-						<div class="catch__item">
-							<div class="catch__img">
+						<div class="guide__item">
+							<div class="guide__img">
 								<img src="img/catch1.png" alt="">
 							</div>
-							<div class="caption">Massive explosion</div>
+							<div class="guide__caption caption">Massive explosion</div>
 						</div>
-						<div class="catch__item">
-							<div class="catch__img">
+						<div class="guide__item">
+							<div class="guide__img">
 								<img src="img/catch2.png" alt="">
 							</div>
-							<div class="caption">Invisibility</div>
+							<div class="guide__caption caption">Invisibility</div>
 						</div>
-						<div class="catch__item">
-							<div class="catch__img">
+						<div class="guide__item">
+							<div class="guide__img">
 								<img src="img/catch3.png" alt="">
 							</div>
-							<div class="caption">Gives you extra life</div>
+							<div class="guide__caption caption">Gives you extra life</div>
 						</div>
 					</div>
-					<div class="caption">You need to score 300 points to complete a world.</div>
-					<div class="caption">If you complete all worlds, you can play in endless mode.</div>
-					<div class="caption">All your progress will be saved, even if you turn off your PC!</div>
+					<div class="guide__caption caption">
+						<p>You need to score 300 points to complete a world.</p>
+						<p>If you complete all worlds, you can play in endless mode.</p>
+						<p>All your progress will be saved, even if you turn off your PC!</p>
+					</div>
 				</div>
 				<button data-screen="main" class="screen__btn">Back</button>
 			</div>
@@ -113,26 +119,6 @@
 			</div>
 			<div class="background">
 				<img src="img/background2.jpg" alt="" class="background__img">
-			</div>
-		</div>
-		<div id="gameOver" class="game-screen">
-			<div class="screen">
-				<div class="game-over__caption">Game Over</div>
-				<div class="game-over__caption">You scored: <span id="scoreGameOver"></span></div>
-				<button data-screen="game" class="screen__btn gameRestart">Restart</button>
-				<button data-screen="worlds" class="screen__btn">Change World</button>
-			</div>
-			<div class="background">
-				<img src="img/background4.jpg" alt="" class="background__img">
-			</div>
-		</div>
-		<div id="completed" class="game-screen">
-			<div class="screen">
-				<div class="game-over__caption">World completed!</div>
-				<button data-screen="worlds" class="screen__btn">Next world</button>
-			</div>
-			<div class="background">
-				<img src="img/background5.jpg" alt="" class="background__img">
 			</div>
 		</div>
 		<div id="game" class="game-screen">

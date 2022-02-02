@@ -41,13 +41,9 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    animation: 1.2s linear infinite loader;
 }
 @keyframes loader {
-   0% {
-     transform: rotate(0deg);
-   }
-   100% {
-     transform: rotate(360deg);
-   }
- }
+   0% {transform: rotate(0deg);}
+   100% {transform: rotate(360deg);}
+}
 .progress-bar{
    display: block;
    width: 50%;
@@ -83,6 +79,11 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    font-size: 4rem;
    margin: 0 0 2.5rem 0;
 }
+.caption {
+   color: #fff;
+   font-size: 1.25rem;
+   margin: 1.25rem;
+}
 .life{
    display: flex;
    align-items: center;
@@ -103,39 +104,39 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    font-size: 32px;
    right: 100px;
 }
-#scoreGameOver{
-   font-size: 50px;
-   padding-left: 20px;
-}
-.avoid{
-   display: flex;
-   align-items: center;
-}
-.catch{
+.guide__block{
    display: grid;
    grid-template-columns: 1fr 1fr;
-   grid-template-rows: 1fr 1fr;
    align-items: center;
    justify-content: center;
 }
-.catch__item{
+.guide__item{
    display: flex;
    align-items: center;
 }
-.caption{
-   color: #fff;
-   font-size: 20px;
-   margin: 20px;
-}
-.avoid__img,
-.catch__img{
+.guide__img{
    width: 50px;
    margin: 10px;
 }
-.catch__img img{
+.guide__img img{
    height: 100%;
    width: 100%;
    object-fit: cover;
+}
+.state {
+   background-color:  rgba(0, 0, 0, 0.5);
+   position: absolute;
+   width: 100%;
+   height: 100%;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+}
+.state .caption {
+   margin: 50px 0;
+   color: #fff;
+   font-size: 50px;
 }
 .game-screen{
    display: flex;
@@ -175,11 +176,6 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    z-index: 1;
    max-width: 1200px;
    height: 850px;
-}
-.game-over__caption{
-   margin: 50px 0;
-   color: #fff;
-   font-size: 50px;
 }
 .screen__btn{
    margin: 1rem 0;
