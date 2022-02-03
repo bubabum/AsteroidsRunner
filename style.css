@@ -278,27 +278,6 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    transition: 0.3s;
    opacity: 0;
 }
-.upgrades {
-   display: grid;
-   grid-template-columns: repeat(3, 33.333%);
-   grid-gap: 30px;
-   justify-content: center;
-   z-index: 2;
-}
-.upgrades__item {
-   position: relative;
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   transition: 0.3s;
-   cursor: pointer;
-}
-.upgrades__img{
-   max-width: 150px;
-   transition: 0.3s;
-   overflow: hidden;
-}
 .screen__range {
    margin-top: 30px;
    width: 300px;

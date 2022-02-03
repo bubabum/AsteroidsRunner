@@ -262,7 +262,6 @@ class World {
 		this.score = 0;
 		this.powerUpCounter = 0;
 		this.spawnAsteroids = false;
-		this.renderFrame = true;
 		this.isGameOver = false;
 		this.lastTime = Date.now();
 		this.slowTimeOut;
@@ -281,9 +280,7 @@ class World {
 		this.update(dt);
 		this.render();
 		this.lastTime = now;
-		if (this.renderFrame === true) {
-			requestAnimFrame(() => this.loop());
-		}
+		requestAnimFrame(() => this.loop());
 	}
 	render() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -357,7 +354,7 @@ class World {
 			this.generatePowerUp();
 		}
 		this.asteroidsOnScreen = Math.floor(this.score / 50) + this.baseAsteroidsOnScreen;
-		if (this.score >= 10 && this.playerData.worlds[this.world] < 300) {
+		if (this.score >= 300 && this.playerData.worlds[this.world] < 300) {
 			this.isGameOver = true;
 			this.playerData.worlds[this.world] = this.score;
 			this.savePLayerData();
@@ -369,8 +366,6 @@ class World {
 	}
 	worldCompleted() {
 		this.addState(this.completedState());
-		// openScreen('completed');
-		// this.renderFrame = false;
 		audioBuffer.theme.stop();
 		audioBuffer.levelCompleted.play(this.playerData.musicVolume);
 	}
@@ -413,19 +408,15 @@ class World {
 			return;
 		}
 		this.isGameOver = true;
-		this.spaceship.img = imagesCache.alien;
-		//document.getElementById('scoreGameOver').innerHTML = this.score;
+		this.spaceship.crash();
 		if (this.score > this.playerData.worlds[this.world]) {
 			this.playerData.worlds[this.world] = this.score;
 			this.savePLayerData();
 		}
 		setTimeout(() => {
 			this.addState(this.gameOverState());
-			//openScreen('gameOver');
-			//document.querySelector('.gameRestart').dataset.world = this.world;
 			audioBuffer.theme.stop();
 			audioBuffer.gameOver.play(this.playerData.musicVolume);
-			//this.renderFrame = false;
 		}, 1000);
 	}
 	addState(markUp) {
@@ -436,7 +427,7 @@ class World {
 	}
 	gameOverState() {
 		const markUp = `<div class="title title_size_m">Game Over</div>
-							<div class="caption">You scored: <span>${this.score}</span></div>
+							<div class="caption">You scored: ${this.score}</div>
 							<button data-world="${this.world}" class="screen__btn gameRestart">Restart</button>
 							<button data-screen="worlds" class="screen__btn">Change World</button>`;
 		return markUp;
@@ -646,7 +637,8 @@ class Spaceship extends InGameObject {
 		this.extraLife++;
 	}
 	removeExtraLife() {
-
+		if (this.extraLife === 0) return
+		this.extraLife--;
 	}
 	invisibility(time) {
 		this.isInvisible = true;
@@ -657,6 +649,10 @@ class Spaceship extends InGameObject {
 	removeInvisibility() {
 		this.isInvisible = false;
 		this.img = imagesCache.ship;
+	}
+	crash() {
+		this.img = imagesCache.alien;
+		this.frames = 4;
 	}
 }
 
@@ -776,9 +772,9 @@ function setAccess() {
 }
 
 function changeVolume() {
-	let newMusicVolume = document.getElementById('music').value / 100;
-	let newSfxVolume = document.getElementById('sfx').value / 100;
-	let playerData = getLocalStorageItem(player);
+	const newMusicVolume = document.getElementById('music').value / 100;
+	const newSfxVolume = document.getElementById('sfx').value / 100;
+	const playerData = getLocalStorageItem(player);
 	playerData.musicVolume = newMusicVolume;
 	playerData.sfxVolume = newSfxVolume;
 	saveLocalStorageItem(player, playerData);
