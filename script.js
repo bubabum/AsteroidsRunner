@@ -39,6 +39,38 @@ window.requestAnimFrame = function () {
 	document.addEventListener('keyup', function (e) {
 		setKey(e, false);
 	});
+	document.querySelector('.controller__left').addEventListener('touchstart', function (e) {
+		e.keyCode = 37;
+		setKey(e, true);
+	});
+	document.querySelector('.controller__left').addEventListener('touchend', function (e) {
+		e.keyCode = 37;
+		setKey(e, false);
+	});
+	document.querySelector('.controller__up').addEventListener('touchstart', function (e) {
+		e.keyCode = 38;
+		setKey(e, true);
+	});
+	document.querySelector('.controller__up').addEventListener('touchend', function (e) {
+		e.keyCode = 38;
+		setKey(e, false);
+	});
+	document.querySelector('.controller__right').addEventListener('touchstart', function (e) {
+		e.keyCode = 39;
+		setKey(e, true);
+	});
+	document.querySelector('.controller__right').addEventListener('touchend', function (e) {
+		e.keyCode = 39;
+		setKey(e, false);
+	});
+	document.querySelector('.controller__down').addEventListener('touchstart', function (e) {
+		e.keyCode = 40;
+		setKey(e, true);
+	});
+	document.querySelector('.controller__down').addEventListener('touchend', function (e) {
+		e.keyCode = 40;
+		setKey(e, false);
+	});
 	window.addEventListener('blur', function () {
 		pressedKeys = {};
 	});
@@ -49,17 +81,9 @@ window.requestAnimFrame = function () {
 	};
 })();
 
-const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 1200;
-canvas.height = 800;
-document.getElementById('game').appendChild(canvas);
-const player = 'player';
-const extraLifeImg = document.getElementById('life');
-const scoreElement = document.getElementById('score');
-
-let imagesCache = {};
-let audioBuffer = {};
+let isTouchScreen = false;
+const imagesCache = {};
+const audioBuffer = {};
 
 class Sound {
 	constructor(context, buffer) {
@@ -85,171 +109,15 @@ class Sound {
 		this.playing = false;
 	}
 }
-function loadResources() {
-	let audioUrls = {
-		theme: 'sounds/space_jazz.mp3',
-		click: 'sounds/click.mp3',
-		start: 'sounds/start.mp3',
-		impact: 'sounds/impact.mp3',
-		gameOver: 'sounds/game_over.mp3',
-		levelCompleted: 'sounds/level_completed.mp3',
-		slow: 'sounds/slow.mp3',
-		flash: 'sounds/flash.mp3',
-		invisibility: 'sounds/invisibility.mp3',
-		extraLife: 'sounds/extra_life.mp3',
-	};
-	let imagesUrls = {
-		alien: 'img/alien.png',
-		ship: 'img/ship.png',
-		life: 'img/life.png',
-		invisibility: 'img/invisibility.png',
-		asteroid0: 'img/ast0.png',
-		asteroid1: 'img/ast1.png',
-		asteroid2: 'img/ast2.png',
-		asteroid3: 'img/ast3.png',
-		asteroid4: 'img/ast4.png',
-		asteroid5: 'img/ast5.png',
-		asteroid6: 'img/ast6.png',
-		asteroid7: 'img/ast7.png',
-		asteroid8: 'img/ast8.png',
-		powerUp0: 'img/pu0.png',
-		powerUp1: 'img/pu1.png',
-		powerUp2: 'img/pu2.png',
-		powerUp3: 'img/pu3.png',
-		world1: 'img/maps/level1.jpg',
-		world2: 'img/maps/level2.jpg',
-		world3: 'img/maps/level3.jpg',
-		world4: 'img/maps/level4.jpg',
-		world5: 'img/maps/level5.jpg',
-		world6: 'img/maps/level6.jpg',
-		world7: 'img/maps/level7.jpg',
-	}
-
-	let urls = Object.values(audioUrls);
-
-	class Buffer {
-		constructor(context, urls) {
-			this.context = context;
-			this.urls = urls;
-			this.buffer = [];
-			this.index = 0;
-		}
-		loadSound(url, index) {
-			let thisBuffer = this;
-			let newPromise = makeRequest('get', url, 'arraybuffer');
-			newPromise.then(value => {
-				updateProgress(newPromise);
-				let subPromise = thisBuffer.context.decodeAudioData(value, function (decodedData) {
-					thisBuffer.buffer[index] = decodedData;
-					updateProgress(subPromise);
-					thisBuffer.index++;
-					if (thisBuffer.index === thisBuffer.urls.length) {
-						onDecoding();
-					}
-				});
-				promises.push(subPromise);
-			}, reason => {
-				console.log(reason);
-			});
-			promises.push(newPromise);
-		}
-		getSoundByIndex(index) {
-			return this.buffer[index];
-		}
-	}
-
-	function makeRequest(method, url, type) {
-		return new Promise(function (resolve, reject) {
-			let xhr = new XMLHttpRequest();
-			xhr.open(method, url);
-			xhr.responseType = type;
-			xhr.onload = function () {
-				if (this.status >= 200 && this.status < 300) {
-					resolve(xhr.response);
-				} else {
-					reject({
-						status: this.status,
-						statusText: xhr.statusText
-					});
-				}
-			};
-			xhr.onerror = function () {
-				reject({
-					status: this.status,
-					statusText: xhr.statusText
-				});
-			};
-			xhr.send();
-		});
-	}
-
-	function loadImages() {
-		for (key in imagesUrls) {
-			let newKey = key;
-			let newPromise = loadImage(imagesUrls[key]);
-			promises.push(newPromise);
-			newPromise.then(function (value) {
-				imagesCache[newKey] = value;
-				updateProgress(newPromise);
-			}, function (reason) {
-				console.log('promise rejected: failed to load images');
-			});
-		}
-		function loadImage(url) {
-			return new Promise((resolve, reject) => {
-				let img = new Image();
-				img.src = url;
-				img.onload = function () {
-					resolve(img);
-				};
-				img.onerror = function (reason) {
-					reject(console.log('failed to load:' + ' ' + url));
-				};
-			})
-		}
-	}
-
-	function loadSounds() {
-		context = new (window.AudioContext || window.webkitAudioContext)();
-		bufferLoader = new Buffer(context, urls);
-		bufferLoader.urls.forEach(element => bufferLoader.loadSound(element, bufferLoader.urls.indexOf(element)));
-	}
-
-	function updateProgress(newResolved) { // визначаємо крок для progress bar
-		resolved.push(newResolved);
-		let step = 1 / promises.length * 100;
-		let newWidth = resolved.length * step;
-		document.querySelector('.progress-bar__status').style.width = newWidth + '%';
-	}
-
-	function onDecoding() {
-		for (key in audioUrls) {
-			let newKey = key;
-			audioBuffer[newKey] = new Sound(context, bufferLoader.getSoundByIndex(urls.indexOf(audioUrls[key])));
-		}
-		let completed = Promise.all(promises);
-		completed.then(function (value) {
-			openScreen('main');
-		}, function (reason) {
-			console.log('promise rejected: failed to load resources');
-		});
-	}
-
-	let context;
-	let bufferLoader;
-	let resolved = [];
-	let promises = [];
-	loadImages();
-	loadSounds();
-}
 
 class World {
-	constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world) {
+	constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world, ctx) {
 		this.minAsteroidType = minAsteroidType;
 		this.maxAsteroidType = maxAsteroidType;
 		this.speedMultiplier = speedMultiplier;
 		this.darkness = darkness;
 		this.world = world;
+		this.ctx = ctx;
 		this.background = BackgroundFactory.createBackground(background);
 		this.spaceship = SpaceshipFactory.createSpaceship();
 		this.asteroids = [];
@@ -275,67 +143,52 @@ class World {
 		states.forEach(element => element.remove());
 	}
 	loop() {
-		let now = Date.now();
-		let dt = (now - this.lastTime) / 1000.0;
+		const now = Date.now();
+		const dt = (now - this.lastTime) / 1000.0;
 		this.update(dt);
 		this.render();
 		this.lastTime = now;
 		requestAnimFrame(() => this.loop());
 	}
 	render() {
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		this.background.render();
-		this.asteroids.forEach(element => element.render());
-		this.powerUps.forEach(element => element.render());
-		this.spaceship.render();
-		this.renderData();
+		this.ctx.save();
+		this.ctx.clearRect(0, 0, 1200, 800);
+		let renderRatio = window.innerWidth / 1200;
+		if (renderRatio > 1) renderRatio = 1;
+		this.ctx.scale(renderRatio, renderRatio);
+		this.background.render(this.ctx);
+		this.asteroids.forEach(element => element.render(this.ctx));
+		this.powerUps.forEach(element => element.render(this.ctx));
+		this.spaceship.render(this.ctx);
+		this.renderScore()
+		this.renderPlayerLives();
+		this.ctx.restore();
 	}
-	renderData() {
-		scoreElement.innerHTML = this.score;
-		let lives = document.querySelectorAll('.life__img');
+	renderScore() {
+		document.getElementById('score').innerHTML = this.score;
+	}
+	renderPlayerLives() {
+		const lives = document.querySelectorAll('.life__img');
 		if (lives.length > 0) {
 			lives.forEach(element => element.remove());
 		}
 		if (this.spaceship.extraLife === 0) return;
 		for (let i = 0; i < this.spaceship.extraLife; i++) {
-			let lifeImg = imagesCache.life.cloneNode(false);
+			const lifeImg = imagesCache.life.cloneNode(false);
 			lifeImg.classList.add('life__img');
 			document.querySelector('.life').appendChild(lifeImg);
 		}
 	}
 	update(dt) {
-		this.moveObjects(dt)
-		this.updateSprites(dt)
+		this.moveObjects(dt);
+		this.updateSprites(dt);
 		this.generateAsteroid(dt);
 		this.removeObjects(this.asteroids);
 		this.removeObjects(this.powerUps);
 		this.addDarkness();
 		if (this.isGameOver === true) return;
 		this.spaceship.moveSpaceship(dt);
-		if (this.spaceship.checkCollision(this.asteroids)) {
-			this.gameOver();
-		}
-		if (this.spaceship.checkCollision(this.powerUps)) {
-			switch (this.powerUps[0].effect) {
-				case 0:
-					audioBuffer.slow.play(this.playerData.sfxVolume);
-					this.slowAsteroids();
-					break;
-				case 1:
-					audioBuffer.flash.play(this.playerData.sfxVolume);
-					this.flash();
-					break;
-				case 2:
-					audioBuffer.invisibility.play(this.playerData.sfxVolume);
-					this.spaceship.invisibility(5000);
-					break;
-				case 3:
-					audioBuffer.extraLife.play(this.playerData.sfxVolume);
-					this.spaceship.addExtraLife();
-					break;
-			}
-			this.powerUps = [];
-		}
+		this.checkCollisions();
 	}
 	updateSprites(dt) {
 		this.spaceship.updateSprite(dt);
@@ -389,6 +242,33 @@ class World {
 		this.powerUps.push(newPowerUp);
 		this.powerUpCounter = 0;
 	}
+	checkCollisions() {
+		if (this.spaceship.checkCollision(this.asteroids)) {
+			this.gameOver();
+		}
+		const newPowerUp = this.spaceship.checkCollision(this.powerUps);
+		if (newPowerUp) {
+			switch (this.powerUps[0].effect) {
+				case 0:
+					audioBuffer.slow.play(this.playerData.sfxVolume);
+					this.slowAsteroids();
+					break;
+				case 1:
+					audioBuffer.flash.play(this.playerData.sfxVolume);
+					this.flash();
+					break;
+				case 2:
+					audioBuffer.invisibility.play(this.playerData.sfxVolume);
+					this.spaceship.invisibility(5000);
+					break;
+				case 3:
+					audioBuffer.extraLife.play(this.playerData.sfxVolume);
+					this.spaceship.addExtraLife();
+					break;
+			}
+			this.powerUps = [];
+		}
+	}
 	removeObjects(objectsArr) {
 		for (let i = 0; i < objectsArr.length; i++) {
 			if (objectsArr[i].x < 0 - objectsArr[i].width) {
@@ -403,9 +283,7 @@ class World {
 		if (this.spaceship.isInvisible === true) return
 		audioBuffer.impact.play(this.playerData.sfxVolume);
 		if (this.spaceship.extraLife > 0) {
-			this.spaceship.extraLife--;
-			this.spaceship.invisibility(2000);
-			return;
+			return this.spaceship.removeExtraLife();
 		}
 		this.isGameOver = true;
 		this.spaceship.crash();
@@ -421,9 +299,9 @@ class World {
 	}
 	addState(markUp) {
 		const state = document.createElement('div');
-		state.classList.add('state');
+		state.classList.add('state', 'state_background');
 		state.innerHTML = markUp;
-		document.getElementById('game').append(state);
+		document.querySelector('.canvas').append(state);
 	}
 	gameOverState() {
 		const markUp = `<div class="title title_size_m">Game Over</div>
@@ -446,9 +324,9 @@ class World {
 		this.slowTimeOut = setTimeout(() => this.speedRatio = 1, 10000);
 	}
 	flash() {
-		let flash = document.createElement('div');
-		flash.classList.add('flash');
-		document.querySelector('.wrapper').append(flash);
+		const flash = document.createElement('div');
+		flash.classList.add('flash', 'state');
+		document.querySelector('.canvas').append(flash);
 		this.score += this.asteroids.length;
 		this.updateScore();
 		this.asteroids = [];
@@ -459,16 +337,16 @@ class World {
 		}, 2000);
 	}
 	addDarkness() {
-		if (document.querySelector('.darkness') || this.darkness === false) return
-		let darkness = document.createElement('div');
-		darkness.classList.add('darkness');
-		document.querySelector('.wrapper').append(darkness);
+		if (document.querySelector('.darkness') || this.darkness === false || this.isGameOver === true) return
+		const darkness = document.createElement('div');
+		darkness.classList.add('darkness', 'state');
+		document.querySelector('.canvas').append(darkness);
 		setTimeout(() => darkness.remove(), 5000);
 	}
 }
 
 class WorldFactory {
-	static createWorld(type) {
+	static createWorld(type, ctx) {
 		let typeOptionsMap = {
 			"0": [0, 1, 1, false, 1, 0],
 			"1": [0, 2, 1, false, 2, 1],
@@ -477,18 +355,18 @@ class WorldFactory {
 			"4": [0, 5, 1, false, 5, 4],
 			"5": [0, 6, 1, false, 6, 5],
 			"6": [7, 7, 1.5, false, 7, 6],
-			"7": [0, 6, 1, true, 7, 7],
-			"8": [8, 8, 0.5, false, 7, 8],
-			"9": [3, 6, 1, true, 7, 9],
-			"10": [9, 9, 1, false, 7, 10],
-			"11": [0, 9, 1, false, 7, 11],
+			"7": [0, 6, 1, true, 8, 7],
+			"8": [8, 8, 0.5, false, 9, 8],
+			"9": [3, 6, 1, true, 10, 9],
+			"10": [9, 9, 1, false, 11, 10],
+			"11": [0, 9, 1, false, 12, 11],
 		};
-		return new World(...typeOptionsMap[type]);
+		return new World(...typeOptionsMap[type], ctx);
 	}
 }
 
 class Background {
-	constructor(img, width) {
+	constructor(img) {
 		this.img = img;
 		this.width = img.naturalWidth;
 		this.scroll = 0;
@@ -499,25 +377,14 @@ class Background {
 			this.scroll = 0;
 		}
 	}
-	render() {
-		ctx.drawImage(this.img, this.scroll, 0, this.width - this.scroll, canvas.height, 0, 0, this.width - this.scroll, canvas.height);
-		ctx.drawImage(this.img, 0, 0, this.scroll, canvas.height, this.width - this.scroll, 0, this.scroll, canvas.height);
+	render(ctx) {
+		ctx.drawImage(this.img, this.scroll, 0, this.width - this.scroll, 800, 0, 0, this.width - this.scroll, 800);
+		ctx.drawImage(this.img, 0, 0, this.scroll, 800, this.width - this.scroll, 0, this.scroll, 800);
 	}
 }
 
 class BackgroundFactory {
-	static createBackground(type) {
-		let randomIndex = Math.floor(Math.random() * 7);
-		let randomBackround;
-		switch (randomIndex) {
-			case 0: randomBackround = imagesCache.world1; break;
-			case 1: randomBackround = imagesCache.world2; break;
-			case 2: randomBackround = imagesCache.world3; break;
-			case 3: randomBackround = imagesCache.world4; break;
-			case 4: randomBackround = imagesCache.world5; break;
-			case 5: randomBackround = imagesCache.world6; break;
-			case 6: randomBackround = imagesCache.world7; break;
-		}
+	static createBackground(type, ctx) {
 		let typeOptionsMap = {
 			"1": imagesCache.world1,
 			"2": imagesCache.world2,
@@ -526,9 +393,13 @@ class BackgroundFactory {
 			"5": imagesCache.world5,
 			"6": imagesCache.world6,
 			"7": imagesCache.world7,
-			"8": randomBackround,
+			"8": imagesCache.world8,
+			"9": imagesCache.world9,
+			"10": imagesCache.world10,
+			"11": imagesCache.world11,
+			"12": imagesCache.world12,
 		};
-		return new Background(typeOptionsMap[type]);
+		return new Background(typeOptionsMap[type], ctx);
 	}
 }
 
@@ -543,7 +414,7 @@ class InGameObject {
 		this.x -= this.speed * dt;
 		switch (this.movingType) {
 			case 0: break;
-			case 1: this.y -= this.speed / (canvas.width / this.dY) * dt; break;
+			case 1: this.y -= this.speed / (1200 / this.dY) * dt; break;
 			case 2: {
 				if (this.y > 800 - this.height) {
 					this.y = 800 - this.height;
@@ -575,7 +446,7 @@ class InGameObject {
 			} break;
 		}
 	}
-	render() {
+	render(ctx) {
 		ctx.drawImage(this.img, (this.frame * this.width) - this.width, 0, this.width, this.height, this.x, this.y, this.width, this.height);
 	}
 	updateSprite(dt) {
@@ -610,11 +481,11 @@ class Spaceship extends InGameObject {
 		}
 		if (input.isDown('RIGHT') || input.isDown('d')) {
 			this.x += this.speed * dt;
-			if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+			if (this.x > 1200 - this.width) this.x = 1200 - this.width;
 		}
 		if (input.isDown('DOWN') || input.isDown('s')) {
 			this.y += this.speed * dt;
-			if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+			if (this.y > 800 - this.height) this.y = 800 - this.height;
 		}
 		if (input.isDown('UP') || input.isDown('w')) {
 			this.y -= this.speed * dt;
@@ -624,21 +495,19 @@ class Spaceship extends InGameObject {
 		}
 	}
 	checkCollision(objectsArr) {
-		let collissions = 0;
-		objectsArr.forEach(element => {
-			if (Math.hypot(Math.abs((this.x + this.width / 2) - (element.x + element.width / 2)), Math.abs((this.y + this.height / 2) - (element.y + element.height / 2))) <= this.hitRadius + element.hitRadius) {
-				collissions++;
+		for (let i = 0; i < objectsArr.length; i++) {
+			if (Math.hypot(Math.abs((this.x + this.width / 2) - (objectsArr[i].x + objectsArr[i].width / 2)), Math.abs((this.y + this.height / 2) - (objectsArr[i].y + objectsArr[i].height / 2))) <= this.hitRadius + objectsArr[i].hitRadius) {
+				return objectsArr[i];
 			}
-		})
-		if (collissions > 0) return true
+		}
 	}
 	addExtraLife() {
 		if (this.extraLife === this.maxExtraLife) return
 		this.extraLife++;
 	}
 	removeExtraLife() {
-		if (this.extraLife === 0) return
 		this.extraLife--;
+		this.invisibility(2000);
 	}
 	invisibility(time) {
 		this.isInvisible = true;
@@ -667,7 +536,7 @@ class Asteroid extends InGameObject {
 		super(frames, frameSpeed);
 		this.width = width;
 		this.height = height;
-		this.x = canvas.width;
+		this.x = 1200;
 		this.y = Math.floor(Math.random() * (800 - height));
 		this.speed = Math.floor(500 + Math.random() * (900 + 1 - 500));
 		this.movingType = movingType;
@@ -702,7 +571,7 @@ class PowerUp extends InGameObject {
 		super(4, 60);
 		this.width = 60;
 		this.height = 40;
-		this.x = canvas.width;
+		this.x = 1200;
 		this.y = Math.floor(Math.random() * (800 - this.height));
 		this.speed = 700;
 		this.movingType = 0;
@@ -724,8 +593,150 @@ class PowerUpFactory {
 	}
 }
 
-function getLocalStorageItem(item) {
-	return JSON.parse(localStorage.getItem(item));
+function loadResources() {
+	const context = new (window.AudioContext || window.webkitAudioContext)();
+	const resolved = [];
+	const promises = [];
+	const audio = {
+		theme: 'sounds/space_jazz.mp3',
+		click: 'sounds/click.mp3',
+		start: 'sounds/start.mp3',
+		impact: 'sounds/impact.mp3',
+		gameOver: 'sounds/game_over.mp3',
+		levelCompleted: 'sounds/level_completed.mp3',
+		slow: 'sounds/slow.mp3',
+		flash: 'sounds/flash.mp3',
+		invisibility: 'sounds/invisibility.mp3',
+		extraLife: 'sounds/extra_life.mp3',
+	};
+	const images = {
+		alien: 'img/alien.png',
+		ship: 'img/ship.png',
+		life: 'img/life.png',
+		invisibility: 'img/invisibility.png',
+		asteroid0: 'img/ast0.png',
+		asteroid1: 'img/ast1.png',
+		asteroid2: 'img/ast2.png',
+		asteroid3: 'img/ast3.png',
+		asteroid4: 'img/ast4.png',
+		asteroid5: 'img/ast5.png',
+		asteroid6: 'img/ast6.png',
+		asteroid7: 'img/ast7.png',
+		asteroid8: 'img/ast8.png',
+		powerUp0: 'img/pu0.png',
+		powerUp1: 'img/pu1.png',
+		powerUp2: 'img/pu2.png',
+		powerUp3: 'img/pu3.png',
+		world1: 'img/maps/level1.jpg',
+		world2: 'img/maps/level2.jpg',
+		world3: 'img/maps/level3.jpg',
+		world4: 'img/maps/level4.jpg',
+		world5: 'img/maps/level5.jpg',
+		world6: 'img/maps/level6.jpg',
+		world7: 'img/maps/level7.jpg',
+		world8: 'img/maps/level8.jpg',
+		world9: 'img/maps/level9.jpg',
+		world10: 'img/maps/level10.jpg',
+		world11: 'img/maps/level11.jpg',
+		world12: 'img/maps/level12.jpg',
+	}
+
+	function makeRequest(method, url, type) {
+		return new Promise(function (resolve, reject) {
+			let xhr = new XMLHttpRequest();
+			xhr.open(method, url);
+			xhr.responseType = type;
+			xhr.onload = function () {
+				if (this.status >= 200 && this.status < 300) {
+					resolve(xhr.response);
+				} else {
+					reject({
+						status: this.status,
+						statusText: xhr.statusText
+					});
+				}
+			};
+			xhr.onerror = function () {
+				reject({
+					status: this.status,
+					statusText: xhr.statusText
+				});
+			};
+			xhr.send();
+		});
+	}
+
+	function loadImages() {
+		for (key in images) {
+			let newKey = key;
+			let newPromise = loadImage(images[key]);
+			promises.push(newPromise);
+			newPromise.then(function (value) {
+				imagesCache[newKey] = value;
+				updateProgress(newPromise);
+			}, function (reason) {
+				console.log('promise rejected: failed to load images');
+			});
+		}
+		function loadImage(url) {
+			return new Promise((resolve, reject) => {
+				let img = new Image();
+				img.src = url;
+				img.onload = function () {
+					resolve(img);
+				};
+				img.onerror = function (reason) {
+					reject(console.log('failed to load:' + ' ' + url));
+				};
+			})
+		}
+	}
+
+	function loadSounds() {
+		for (key in audio) {
+			loadSound(audio[key], key);
+		}
+	}
+	function loadSound(url, key) {
+		const newPromise = makeRequest('get', url, 'arraybuffer');
+		newPromise.then(value => {
+			updateProgress(newPromise);
+			const subPromise = context.decodeAudioData(value, function (decodedData) {
+				audioBuffer[key] = new Sound(context, decodedData);
+				updateProgress(subPromise);
+				if (Object.values(audioBuffer).length === Object.values(audio).length) {
+					completeLoading();
+				}
+			});
+			promises.push(subPromise);
+		}, reason => {
+			console.log(reason);
+		});
+		promises.push(newPromise);
+	}
+
+	function completeLoading() {
+		const completed = Promise.all(promises);
+		completed.then(function (value) {
+			openScreen('main');
+		}, function (reason) {
+			console.log('promise rejected: failed to load resources');
+		});
+	}
+
+	function updateProgress(newResolved) { // визначаємо крок для progress bar
+		resolved.push(newResolved);
+		const step = 1 / promises.length * 100;
+		const newWidth = resolved.length * step;
+		document.querySelector('.progress-bar__status').style.width = newWidth + '%';
+	}
+
+	loadImages();
+	loadSounds();
+}
+
+function getLocalStorageItem() {
+	return JSON.parse(localStorage.getItem('player'));
 }
 function saveLocalStorageItem(item, data) {
 	localStorage.setItem(item, JSON.stringify(data));
@@ -733,6 +744,11 @@ function saveLocalStorageItem(item, data) {
 
 function openScreen(id) {
 	if (!id) return
+	const controller = document.querySelector('.controller');
+	controller.classList.remove('active');
+	if (id === 'game' && isTouchScreen === true) {
+		controller.classList.add('active');
+	}
 	document.querySelectorAll('.game-screen').forEach(element => element.classList.remove('active'));
 	document.getElementById(id).classList.add('active');
 	setAccess();
@@ -742,10 +758,7 @@ function addWorlds() {
 	const worlds = JSON.parse(localStorage.getItem('player')).worlds;
 	const worldsElement = document.querySelector('.worlds');
 	for (key in worlds) {
-		let img = parseInt(key) + 1 + 's';
-		if (parseInt(key) > 6) {
-			img = 'rand';
-		}
+		const img = parseInt(key) + 1 + 's';
 		worldsElement.insertAdjacentHTML('beforeend', `
          <div data-world="${parseInt(key)}" class="worlds__item">
             <img src="img/maps/level${img}.jpg" alt="" class="worlds__img">
@@ -757,7 +770,7 @@ function addWorlds() {
 }
 
 function setAccess() {
-	const playerData = getLocalStorageItem(player);
+	const playerData = getLocalStorageItem();
 	const worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
 	for (let i = 0; i < worlds.length; i++) {
 		if (playerData.worlds[i - 1] >= 300 || playerData.worlds[i - 1] === undefined) {
@@ -774,14 +787,14 @@ function setAccess() {
 function changeVolume() {
 	const newMusicVolume = document.getElementById('music').value / 100;
 	const newSfxVolume = document.getElementById('sfx').value / 100;
-	const playerData = getLocalStorageItem(player);
+	const playerData = getLocalStorageItem();
 	playerData.musicVolume = newMusicVolume;
 	playerData.sfxVolume = newSfxVolume;
-	saveLocalStorageItem(player, playerData);
+	saveLocalStorageItem('player', playerData);
 }
 
 function setPlayerData() {
-	if (getLocalStorageItem(player)) return
+	if (getLocalStorageItem()) return
 	let playerData = {
 		worlds: {
 			"0": 0,
@@ -800,23 +813,38 @@ function setPlayerData() {
 		musicVolume: 0.6,
 		sfxVolume: 0.2,
 	}
-	saveLocalStorageItem(player, playerData);
+	saveLocalStorageItem('player', playerData);
 }
 
 function createWorld(world) {
 	openScreen('game');
-	audioBuffer.click.play(getLocalStorageItem(player).sfxVolume);
-	audioBuffer.theme.play(getLocalStorageItem(player).musicVolume);
-	let newWorld = WorldFactory.createWorld(world);
+	audioBuffer.click.play(getLocalStorageItem().sfxVolume);
+	audioBuffer.theme.play(getLocalStorageItem().musicVolume);
+	document.querySelector('.canvas').innerHTML = '';
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
+	ctx.imageSmoothingEnabled = false;
+	if (window.innerWidth > 1200) {
+		canvas.width = 1200;
+		canvas.height = 800;
+	} else {
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerWidth / 1.5;
+	}
+	document.querySelector('.canvas').appendChild(canvas);
+	let newWorld = WorldFactory.createWorld(world, ctx);
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
 	setPlayerData();
 	addWorlds();
 	loadResources();
+	window.addEventListener('touchstart', function () {
+		isTouchScreen = true;
+	})
 	document.addEventListener('click', function (event) {
 		if (event.target.classList.contains('screen__btn')) {
-			audioBuffer.click.play(getLocalStorageItem(player).sfxVolume);
+			audioBuffer.click.play(getLocalStorageItem().sfxVolume);
 			openScreen(event.target.dataset.screen);
 		}
 		if (event.target.classList.contains('gameRestart')) {
