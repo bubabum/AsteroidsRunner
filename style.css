@@ -380,6 +380,7 @@ a.caption {
 	margin: 10px;
 	color: #fff;
 	border-radius: 1rem;
+	touch-action: manipulation;
 }
 .controller__horizontal{
 	display: flex;

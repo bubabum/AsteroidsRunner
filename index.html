@@ -4,17 +4,19 @@
 <head>
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0 user-scalable=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+	<meta name="description" content="Asteroids Runner HTML5 game">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Mochiy+Pop+P+One&display=swap" rel="stylesheet">
 	<title>Asteroids Runner</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<link rel="shortcut icon" href="img/loader.png">
+	<script defer src="script.js"></script>
 </head>
 
 <body>
-	<div class="wrapper">
+	<div class="wrapper unselectable">
 		<div id="loading" class="game-screen active">
 			<div class="screen">
 				<img src="img/loader.png" alt="" class="loader">
@@ -153,17 +155,16 @@
 			<div class="canvas"></div>
 			<div class="controller">
 				<div class="controller__horizontal">
-					<button class="controller__left unselectable"></button>
-					<button class="controller__right unselectable"></button>
+					<button class="controller__left"></button>
+					<button class="controller__right"></button>
 				</div>
 				<div class="controller__vertical">
-					<button class="controller__up unselectable"></button>
-					<button class="controller__down unselectable"></button>
+					<button class="controller__up"></button>
+					<button class="controller__down"></button>
 				</div>
 			</div>
 		</div>
 	</div>
-	<script src="script.js"></script>
 </body>
 
 </html>

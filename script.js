@@ -85,31 +85,6 @@ let isTouchScreen = false;
 const imagesCache = {};
 const audioBuffer = {};
 
-class Sound {
-	constructor(context, buffer) {
-		this.context = context;
-		this.buffer = buffer;
-	}
-	init(volume) {
-		this.gainNode = this.context.createGain();
-		this.source = this.context.createBufferSource();
-		this.source.buffer = this.buffer;
-		this.source.connect(this.gainNode);
-		this.gainNode.connect(this.context.destination);
-		this.gainNode.gain.setValueAtTime(volume, this.context.currentTime);
-	}
-	play(volume) {
-		this.init(volume);
-		this.source.start(this.context.currentTime);
-		this.playing = true;
-	}
-	stop() {
-		this.gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
-		this.source.stop(this.context.currentTime + 0.5);
-		this.playing = false;
-	}
-}
-
 class World {
 	constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world, ctx) {
 		this.minAsteroidType = minAsteroidType;
@@ -151,18 +126,20 @@ class World {
 		requestAnimFrame(() => this.loop());
 	}
 	render() {
-		this.ctx.save();
-		this.ctx.clearRect(0, 0, 1200, 800);
+		let ctx = this.ctx
 		let renderRatio = window.innerWidth / 1200;
 		if (renderRatio > 1) renderRatio = 1;
-		this.ctx.scale(renderRatio, renderRatio);
-		this.background.render(this.ctx);
-		this.asteroids.forEach(element => element.render(this.ctx));
-		this.powerUps.forEach(element => element.render(this.ctx));
-		this.spaceship.render(this.ctx);
+		ctx.save();
+		ctx.clearRect(0, 0, 1200, 800);
+		ctx.imageSmoothingEnabled = false;
+		ctx.scale(renderRatio, renderRatio);
+		this.background.render(ctx);
+		this.asteroids.forEach(element => element.render(ctx));
+		this.powerUps.forEach(element => element.render(ctx));
+		this.spaceship.render(ctx);
 		this.renderScore()
 		this.renderPlayerLives();
-		this.ctx.restore();
+		ctx.restore();
 	}
 	renderScore() {
 		document.getElementById('score').innerHTML = this.score;
@@ -220,7 +197,7 @@ class World {
 	worldCompleted() {
 		this.addState(this.completedState());
 		audioBuffer.theme.stop();
-		audioBuffer.levelCompleted.play(this.playerData.musicVolume);
+		audioBuffer.levelCompleted.play();
 	}
 	generateAsteroid(dt) {
 		if (!this.spawnTimeOut && this.spawnAsteroids === false) {
@@ -250,19 +227,19 @@ class World {
 		if (newPowerUp) {
 			switch (this.powerUps[0].effect) {
 				case 0:
-					audioBuffer.slow.play(this.playerData.sfxVolume);
+					audioBuffer.slow.play();
 					this.slowAsteroids();
 					break;
 				case 1:
-					audioBuffer.flash.play(this.playerData.sfxVolume);
+					audioBuffer.flash.play();
 					this.flash();
 					break;
 				case 2:
-					audioBuffer.invisibility.play(this.playerData.sfxVolume);
+					audioBuffer.invisibility.play();
 					this.spaceship.invisibility(5000);
 					break;
 				case 3:
-					audioBuffer.extraLife.play(this.playerData.sfxVolume);
+					audioBuffer.extraLife.play();
 					this.spaceship.addExtraLife();
 					break;
 			}
@@ -281,7 +258,7 @@ class World {
 	}
 	gameOver() {
 		if (this.spaceship.isInvisible === true) return
-		audioBuffer.impact.play(this.playerData.sfxVolume);
+		audioBuffer.impact.play();
 		if (this.spaceship.extraLife > 0) {
 			return this.spaceship.removeExtraLife();
 		}
@@ -294,7 +271,7 @@ class World {
 		setTimeout(() => {
 			this.addState(this.gameOverState());
 			audioBuffer.theme.stop();
-			audioBuffer.gameOver.play(this.playerData.musicVolume);
+			audioBuffer.gameOver.play();
 		}, 1000);
 	}
 	addState(markUp) {
@@ -598,16 +575,16 @@ function loadResources() {
 	const resolved = [];
 	const promises = [];
 	const audio = {
-		theme: 'sounds/space_jazz.mp3',
-		click: 'sounds/click.mp3',
-		start: 'sounds/start.mp3',
-		impact: 'sounds/impact.mp3',
-		gameOver: 'sounds/game_over.mp3',
-		levelCompleted: 'sounds/level_completed.mp3',
-		slow: 'sounds/slow.mp3',
-		flash: 'sounds/flash.mp3',
-		invisibility: 'sounds/invisibility.mp3',
-		extraLife: 'sounds/extra_life.mp3',
+		theme: ['sounds/space_jazz.mp3', music],
+		click: ['sounds/click.mp3', sfx],
+		start: ['sounds/start.mp3', sfx],
+		impact: ['sounds/impact.mp3', sfx],
+		gameOver: ['sounds/game_over.mp3', music],
+		levelCompleted: ['sounds/level_completed.mp3', music],
+		slow: ['sounds/slow.mp3', sfx],
+		flash: ['sounds/flash.mp3', sfx],
+		invisibility: ['sounds/invisibility.mp3', sfx],
+		extraLife: ['sounds/extra_life.mp3', sfx],
 	};
 	const images = {
 		alien: 'img/alien.png',
@@ -639,6 +616,42 @@ function loadResources() {
 		world10: 'img/maps/level10.jpg',
 		world11: 'img/maps/level11.jpg',
 		world12: 'img/maps/level12.jpg',
+	}
+
+	class Sound {
+		constructor(context, buffer, type) {
+			this.context = context;
+			this.buffer = buffer;
+			this.type = type;
+		}
+		init(volume) {
+			this.gainNode = this.context.createGain();
+			this.source = this.context.createBufferSource();
+			this.source.buffer = this.buffer;
+			this.source.connect(this.gainNode);
+			this.gainNode.connect(this.context.destination);
+			this.gainNode.gain.setValueAtTime(volume, this.context.currentTime);
+		}
+		play() {
+			const playerData = JSON.parse(localStorage.getItem('player'));
+			let volume;
+			switch (this.type) {
+				case sfx:
+					volume = playerData.sfxVolume;
+					break;
+				case music:
+					volume = playerData.musicVolume;
+					break;
+			}
+			this.init(volume);
+			this.source.start(this.context.currentTime);
+			this.playing = true;
+		}
+		stop() {
+			this.gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
+			this.source.stop(this.context.currentTime + 0.5);
+			this.playing = false;
+		}
 	}
 
 	function makeRequest(method, url, type) {
@@ -694,15 +707,15 @@ function loadResources() {
 
 	function loadSounds() {
 		for (key in audio) {
-			loadSound(audio[key], key);
+			loadSound(...audio[key], key);
 		}
 	}
-	function loadSound(url, key) {
+	function loadSound(url, type, key) {
 		const newPromise = makeRequest('get', url, 'arraybuffer');
 		newPromise.then(value => {
 			updateProgress(newPromise);
 			const subPromise = context.decodeAudioData(value, function (decodedData) {
-				audioBuffer[key] = new Sound(context, decodedData);
+				audioBuffer[key] = new Sound(context, decodedData, type);
 				updateProgress(subPromise);
 				if (Object.values(audioBuffer).length === Object.values(audio).length) {
 					completeLoading();
@@ -735,15 +748,9 @@ function loadResources() {
 	loadSounds();
 }
 
-function getLocalStorageItem() {
-	return JSON.parse(localStorage.getItem('player'));
-}
-function saveLocalStorageItem(item, data) {
-	localStorage.setItem(item, JSON.stringify(data));
-}
-
 function openScreen(id) {
 	if (!id) return
+	audioBuffer.click.play();
 	const controller = document.querySelector('.controller');
 	controller.classList.remove('active');
 	if (id === 'game' && isTouchScreen === true) {
@@ -770,7 +777,7 @@ function addWorlds() {
 }
 
 function setAccess() {
-	const playerData = getLocalStorageItem();
+	const playerData = JSON.parse(localStorage.getItem('player'));
 	const worlds = document.getElementById('worlds').querySelectorAll('.worlds__item');
 	for (let i = 0; i < worlds.length; i++) {
 		if (playerData.worlds[i - 1] >= 300 || playerData.worlds[i - 1] === undefined) {
@@ -787,14 +794,14 @@ function setAccess() {
 function changeVolume() {
 	const newMusicVolume = document.getElementById('music').value / 100;
 	const newSfxVolume = document.getElementById('sfx').value / 100;
-	const playerData = getLocalStorageItem();
+	const playerData = JSON.parse(localStorage.getItem('player'));
 	playerData.musicVolume = newMusicVolume;
 	playerData.sfxVolume = newSfxVolume;
-	saveLocalStorageItem('player', playerData);
+	localStorage.setItem('player', JSON.stringify(playerData));
 }
 
 function setPlayerData() {
-	if (getLocalStorageItem()) return
+	if (JSON.parse(localStorage.getItem('player'))) return
 	let playerData = {
 		worlds: {
 			"0": 0,
@@ -813,25 +820,22 @@ function setPlayerData() {
 		musicVolume: 0.6,
 		sfxVolume: 0.2,
 	}
-	saveLocalStorageItem('player', playerData);
+	localStorage.setItem('player', JSON.stringify(playerData));
 }
 
 function createWorld(world) {
 	openScreen('game');
-	audioBuffer.click.play(getLocalStorageItem().sfxVolume);
-	audioBuffer.theme.play(getLocalStorageItem().musicVolume);
 	document.querySelector('.canvas').innerHTML = '';
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
-	ctx.imageSmoothingEnabled = false;
-	if (window.innerWidth > 1200) {
-		canvas.width = 1200;
-		canvas.height = 800;
-	} else {
+	canvas.width = 1200;
+	canvas.height = 800;
+	if (window.innerWidth < 1200) {
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerWidth / 1.5;
 	}
 	document.querySelector('.canvas').appendChild(canvas);
+	audioBuffer.theme.play();
 	let newWorld = WorldFactory.createWorld(world, ctx);
 }
 
@@ -844,7 +848,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
 	})
 	document.addEventListener('click', function (event) {
 		if (event.target.classList.contains('screen__btn')) {
-			audioBuffer.click.play(getLocalStorageItem().sfxVolume);
 			openScreen(event.target.dataset.screen);
 		}
 		if (event.target.classList.contains('gameRestart')) {
