@@ -20,6 +20,7 @@ body{
 	margin: 0;
 	overflow:  hidden;
 	background-color: #404040;
+	min-height: 100vh;
 }
 input,button,textarea{font-family: inherit;}
 input::-ms-clear {
@@ -40,6 +41,7 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    align-items: center;
 	min-width: 100%;
 	min-height: 100%;
+	min-height: 100vh;
 }
 .game-screen{
    display: flex;
@@ -83,7 +85,6 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
 }
 .background img{
    z-index: 1;
-	/* max-width: 1200px; */
 	object-fit: cover;
 	min-height: 300px;
 	width: 768px;
@@ -258,7 +259,7 @@ a.caption {
    box-shadow: 0px 0px 30px 0px #fff;
 }
 .worlds__item:hover .worlds__caption{
-   transform: translate(0, -80px) scale(1.5);
+   transform: translate(0, -5rem) scale(1.5);
 }
 .worlds__item:hover .worlds__score{
    opacity: 1;
@@ -271,7 +272,7 @@ a.caption {
 }
 .worlds__caption{
    color: #fff;
-   font-size: 1.125rem;
+   font-size: 1rem;
    margin: 0.625rem 0;
    transition: 0.3s;
 }
@@ -389,6 +390,18 @@ a.caption {
 	display: flex;
 	flex-direction: column;
 }
+.controller__pause{
+	touch-action: manipulation;
+	width: 60px;
+	height: 40px;
+	border: 2px solid #fff;
+	font-size: 1rem;
+	color: #fff;
+	border-radius: 1rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
 .unselectable {
 	-webkit-touch-callout: none; /* iOS Safari */
 	-webkit-user-select: none;   /* Chrome/Safari/Opera */
@@ -398,6 +411,9 @@ a.caption {
 	user-select: none;           /* Non-prefixed version, currently
 											  not supported by any browser */
  }
+canvas {
+	max-width: 100%;
+}
 
 @media (min-width: 992px) and (max-width: 1199px) {
 	html{
@@ -414,6 +430,9 @@ a.caption {
 @media (max-width: 767px) {
 	html{
 		font-size: 8px;
+	}
+	.game-screen{
+		min-height: 100vh;
 	}
 	.worlds__caption{
 		font-size: 1.5rem;
@@ -442,6 +461,8 @@ a.caption {
 @media (max-width: 480px) {
 	.worlds{
 		grid-template-columns: repeat(3, 25%);
+		max-height: 80vh;
+		overflow: scroll;
 	}
 	.worlds__caption{
 		font-size: 1.75rem;

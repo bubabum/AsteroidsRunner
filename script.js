@@ -17,8 +17,8 @@ window.requestAnimFrame = function () {
 		var key;
 
 		switch (code) {
-			case 32:
-				key = 'SPACE'; break;
+			// case 32:
+			// 	key = 'SPACE'; break;
 			case 37:
 				key = 'LEFT'; break;
 			case 38:
@@ -34,11 +34,17 @@ window.requestAnimFrame = function () {
 		pressedKeys[key] = status;
 	}
 	document.addEventListener('keydown', function (e) {
+		if (e.keyCode === 32) {
+			pressedKeys['SPACE'] = !pressedKeys['SPACE'];
+		}
 		setKey(e, true);
 	});
 	document.addEventListener('keyup', function (e) {
 		setKey(e, false);
 	});
+	// document.querySelector('.controller__pause').addEventListener('touchstart', function () {
+	// 	pressedKeys['SPACE'] = !pressedKeys['SPACE'];
+	// });
 	document.querySelector('.controller__left').addEventListener('touchstart', function (e) {
 		e.keyCode = 37;
 		setKey(e, true);
@@ -86,17 +92,18 @@ const imagesCache = {};
 const audioBuffer = {};
 
 class World {
-	constructor(minAsteroidType, maxAsteroidType, speedMultiplier, darkness, background, world, ctx) {
-		this.minAsteroidType = minAsteroidType;
-		this.maxAsteroidType = maxAsteroidType;
+	constructor(asteroidsTypeMap, speedMultiplier, darkness, slime, background, world, ctx) {
+		this.asteroidsTypeMap = asteroidsTypeMap;
 		this.speedMultiplier = speedMultiplier;
 		this.darkness = darkness;
+		this.slime = slime;
 		this.world = world;
 		this.ctx = ctx;
 		this.background = BackgroundFactory.createBackground(background);
 		this.spaceship = SpaceshipFactory.createSpaceship();
 		this.asteroids = [];
 		this.powerUps = [];
+		this.slimes = [];
 		this.powerUpInterval = 15;
 		this.speedRatio = 1;
 		this.baseAsteroidsOnScreen = 3;
@@ -109,6 +116,7 @@ class World {
 		this.lastTime = Date.now();
 		this.slowTimeOut;
 		this.playerData = JSON.parse(localStorage.getItem('player'));
+		this.isPause = false;
 		this.removeAllStates();
 		this.loop();
 	}
@@ -127,19 +135,18 @@ class World {
 	}
 	render() {
 		let ctx = this.ctx
-		let renderRatio = window.innerWidth / 1200;
-		if (renderRatio > 1) renderRatio = 1;
-		ctx.save();
 		ctx.clearRect(0, 0, 1200, 800);
+		ctx.mozImageSmoothingEnabled = false;
+		ctx.webkitImageSmoothingEnabled = false;
+		ctx.msImageSmoothingEnabled = false;
 		ctx.imageSmoothingEnabled = false;
-		ctx.scale(renderRatio, renderRatio);
 		this.background.render(ctx);
 		this.asteroids.forEach(element => element.render(ctx));
 		this.powerUps.forEach(element => element.render(ctx));
+		this.slimes.forEach(element => element.render(ctx));
 		this.spaceship.render(ctx);
 		this.renderScore()
 		this.renderPlayerLives();
-		ctx.restore();
 	}
 	renderScore() {
 		document.getElementById('score').innerHTML = this.score;
@@ -157,13 +164,17 @@ class World {
 		}
 	}
 	update(dt) {
+		// if (input.isDown('SPACE') === !this.isPause && this.isGameOver !== true) {
+		// 	this.tooglePause();
+		// }
+		if (this.isPause === true) return
 		this.moveObjects(dt);
 		this.updateSprites(dt);
 		this.generateAsteroid(dt);
 		this.removeObjects(this.asteroids);
 		this.removeObjects(this.powerUps);
-		this.addDarkness();
 		if (this.isGameOver === true) return;
+		this.addDarkness();
 		this.spaceship.moveSpaceship(dt);
 		this.checkCollisions();
 	}
@@ -171,17 +182,25 @@ class World {
 		this.spaceship.updateSprite(dt);
 		this.asteroids.forEach(element => element.updateSprite(dt));
 		this.powerUps.forEach(element => element.updateSprite(dt));
+		this.slimes.forEach(element => element.updateSprite(dt));
 	}
 	moveObjects(dt) {
 		this.asteroids.forEach(element => element.move(dt));
 		this.powerUps.forEach(element => element.move(dt));
+		this.slimes.forEach(element => element.move(dt));
 		this.background.move(dt);
 	}
 	updateScore() {
 		this.score++;
 		this.powerUpCounter++;
+		if (this.slime) {
+			if (Math.floor(Math.random() * 10) === 0) {
+				this.generateSlime()
+			}
+		}
 		if (this.powerUpCounter === this.powerUpInterval) {
 			this.generatePowerUp();
+			this.powerUpCounter = 0;
 		}
 		this.asteroidsOnScreen = Math.floor(this.score / 50) + this.baseAsteroidsOnScreen;
 		if (this.score >= 300 && this.playerData.worlds[this.world] < 300) {
@@ -191,11 +210,23 @@ class World {
 			setTimeout(() => this.worldCompleted(), 500);
 		}
 	}
+	tooglePause() {
+		if (this.isPause) {
+			this.pauseState.remove();
+			delete this.pauseState;
+		} else {
+			const newPause = GameStateFactory.createGameState('pause');
+			this.pauseState = newPause;
+			this.pauseState.add();
+		}
+		this.isPause = !this.isPause;
+	}
 	savePLayerData() {
 		localStorage.setItem('player', JSON.stringify(this.playerData));
 	}
 	worldCompleted() {
-		this.addState(this.completedState());
+		const worldCompleted = GameStateFactory.createGameState('worldCompleted');
+		worldCompleted.add();
 		audioBuffer.theme.stop();
 		audioBuffer.levelCompleted.play();
 	}
@@ -209,7 +240,7 @@ class World {
 		this.asteroidsInterval += dt;
 		if (this.asteroidsInterval < 0.1) return;
 		this.asteroidsInterval = 0;
-		let newAsteroid = AsteroidFactory.createAsteroid(Math.floor(this.minAsteroidType + Math.random() * (this.maxAsteroidType + 1 - this.minAsteroidType)));
+		let newAsteroid = AsteroidFactory.createAsteroid(this.asteroidsTypeMap[Math.floor(Math.random() * this.asteroidsTypeMap.length)]);
 		newAsteroid.speed *= this.speedRatio * this.speedMultiplier;
 		this.asteroids.push(newAsteroid);
 	}
@@ -217,14 +248,17 @@ class World {
 		let type = Math.floor(Math.random() * 4);
 		let newPowerUp = PowerUpFactory.createPowerUp(type);
 		this.powerUps.push(newPowerUp);
-		this.powerUpCounter = 0;
+	}
+	generateSlime() {
+		let newSlime = SlimeFactory.createSlime();
+		this.slimes.push(newSlime);
 	}
 	checkCollisions() {
 		if (this.spaceship.checkCollision(this.asteroids)) {
 			this.gameOver();
 		}
 		const newPowerUp = this.spaceship.checkCollision(this.powerUps);
-		if (newPowerUp) {
+		if (newPowerUp && this.spaceship.isSlimed === false) {
 			switch (this.powerUps[0].effect) {
 				case 0:
 					audioBuffer.slow.play();
@@ -245,6 +279,16 @@ class World {
 			}
 			this.powerUps = [];
 		}
+		const slimeCollision = this.spaceship.checkCollision(this.slimes)
+		if (slimeCollision && this.spaceship.speed !== 100 && this.spaceship.isInvisible === false) {
+			audioBuffer.impact.play();
+			slimeCollision.crash();
+			this.spaceship.speed = 100;
+			setTimeout(() => {
+				this.spaceship.addSlime();
+				this.slimes = [];
+			}, 100);
+		}
 	}
 	removeObjects(objectsArr) {
 		for (let i = 0; i < objectsArr.length; i++) {
@@ -259,6 +303,7 @@ class World {
 	gameOver() {
 		if (this.spaceship.isInvisible === true) return
 		audioBuffer.impact.play();
+		if (this.spaceship.isSlimed) this.spaceship.removeSlime();
 		if (this.spaceship.extraLife > 0) {
 			return this.spaceship.removeExtraLife();
 		}
@@ -269,28 +314,11 @@ class World {
 			this.savePLayerData();
 		}
 		setTimeout(() => {
-			this.addState(this.gameOverState());
+			const gameOver = GameStateFactory.createGameState('gameOver', this.score, this.world);
+			gameOver.add();
 			audioBuffer.theme.stop();
 			audioBuffer.gameOver.play();
 		}, 1000);
-	}
-	addState(markUp) {
-		const state = document.createElement('div');
-		state.classList.add('state', 'state_background');
-		state.innerHTML = markUp;
-		document.querySelector('.canvas').append(state);
-	}
-	gameOverState() {
-		const markUp = `<div class="title title_size_m">Game Over</div>
-							<div class="caption">You scored: ${this.score}</div>
-							<button data-world="${this.world}" class="screen__btn gameRestart">Restart</button>
-							<button data-screen="worlds" class="screen__btn">Change World</button>`;
-		return markUp;
-	}
-	completedState() {
-		const markUp = `<div class="title title_size_m">World completed!</div>
-							<button data-screen="worlds" class="screen__btn">Next world</button>`;
-		return markUp;
 	}
 	slowAsteroids() {
 		if (this.speedRatio === 1) {
@@ -300,10 +328,16 @@ class World {
 		clearTimeout(this.slowTimeOut);
 		this.slowTimeOut = setTimeout(() => this.speedRatio = 1, 10000);
 	}
+	speedUpAsteroids() {
+		if (this.speedRatio === 1) {
+			this.asteroids.forEach(element => element.speed *= 1.5);
+		}
+		this.speedRatio = 1.5;
+		setTimeout(() => this.speedRatio = 1, 10000);
+	}
 	flash() {
-		const flash = document.createElement('div');
-		flash.classList.add('flash', 'state');
-		document.querySelector('.canvas').append(flash);
+		const flash = GameStateFactory.createGameState('flash');
+		flash.add();
 		this.score += this.asteroids.length;
 		this.updateScore();
 		this.asteroids = [];
@@ -314,10 +348,9 @@ class World {
 		}, 2000);
 	}
 	addDarkness() {
-		if (document.querySelector('.darkness') || this.darkness === false || this.isGameOver === true) return
-		const darkness = document.createElement('div');
-		darkness.classList.add('darkness', 'state');
-		document.querySelector('.canvas').append(darkness);
+		if (document.querySelector('.darkness') || this.darkness === false) return
+		const darkness = GameStateFactory.createGameState('darkness');
+		darkness.add();
 		setTimeout(() => darkness.remove(), 5000);
 	}
 }
@@ -325,20 +358,63 @@ class World {
 class WorldFactory {
 	static createWorld(type, ctx) {
 		let typeOptionsMap = {
-			"0": [0, 1, 1, false, 1, 0],
-			"1": [0, 2, 1, false, 2, 1],
-			"2": [0, 3, 1, false, 3, 2],
-			"3": [0, 4, 1, false, 4, 3],
-			"4": [0, 5, 1, false, 5, 4],
-			"5": [0, 6, 1, false, 6, 5],
-			"6": [7, 7, 1.5, false, 7, 6],
-			"7": [0, 6, 1, true, 8, 7],
-			"8": [8, 8, 0.5, false, 9, 8],
-			"9": [3, 6, 1, true, 10, 9],
-			"10": [9, 9, 1, false, 11, 10],
-			"11": [0, 9, 1, false, 12, 11],
+			"0": [[0, 1], 1, false, false, 1, 0],
+			"1": [[0, 1, 2], 1, false, false, 2, 1],
+			"2": [[0, 1, 2, 3], 1, false, false, 3, 2],
+			"3": [[0, 1, 2, 3, 4], 1, false, false, 4, 3],
+			"4": [[0, 1, 2, 3, 4, 5], 1, false, false, 5, 4],
+			"5": [[0, 1, 2, 3, 4, 5, 6], 1, false, false, 6, 5],
+			"6": [[7], 1.5, false, false, 7, 6],
+			"7": [[0, 1, 2, 3, 4, 5, 6], 1, true, false, 8, 7],
+			"8": [[8], 0.5, false, false, 9, 8],
+			"9": [[3, 4, 5, 6], 1, true, false, 10, 9],
+			"10": [[9], 1, false, false, 11, 10],
+			"11": [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 1, false, false, 12, 11],
+			"12": [[3, 5], 1, false, true, 13, 12],
+			"13": [[1, 4, 10], 1, false, true, 14, 13],
+			"14": [[0, 1, 2, 3, 4, 5, 6, 7, 8], 1.2, false, true, 15, 14],
+			"15": [[2, 9, 10], 1, false, true, 16, 15],
 		};
 		return new World(...typeOptionsMap[type], ctx);
+	}
+}
+
+class GameState {
+	constructor(classes, markUp) {
+		this.classes = classes;
+		this.markUp = markUp;
+		this.state = document.createElement('div');
+	}
+	add() {
+		this.state.classList.add('state', this.classes);
+		if (this.markUp) this.state.innerHTML = this.markUp;
+		document.querySelector('.canvas').append(this.state);
+	}
+	remove() {
+		this.state.remove();
+	}
+}
+
+class GameStateFactory {
+	static createGameState(type, score, world) {
+		let typeOptionsMap = {
+			"gameOver": ['state_background', `
+				<div class="title title_size_m">Game Over</div>
+				<div class="caption">You scored: ${score}</div>
+				<button data-world="${world}" class="screen__btn gameRestart">Restart</button>
+				<button data-screen="worlds" class="screen__btn">Change World</button>
+			`],
+			"worldCompleted": ['state_background', `
+				<div class="title title_size_m">World completed!</div>
+				<button data-screen="worlds" class="screen__btn">Next world</button>
+			`],
+			"pause": ['state_background', `
+				<div class="title title_size_m">Pause</div>
+			`],
+			"flash": ['flash'],
+			"darkness": ['darkness'],
+		};
+		return new GameState(...typeOptionsMap[type]);
 	}
 }
 
@@ -375,6 +451,10 @@ class BackgroundFactory {
 			"10": imagesCache.world10,
 			"11": imagesCache.world11,
 			"12": imagesCache.world12,
+			"13": imagesCache.world13,
+			"14": imagesCache.world14,
+			"15": imagesCache.world15,
+			"16": imagesCache.world16,
 		};
 		return new Background(typeOptionsMap[type], ctx);
 	}
@@ -421,6 +501,18 @@ class InGameObject {
 				}
 				this.y += (500 * Math.tan(this.x / 1200 * dt)) * this.k;
 			} break;
+			case 5: {
+				this.x += this.speed * dt * 2;
+			} break;
+			case 6: {
+				if (this.y > 800 - this.height) {
+					this.y = 800 - this.height;
+				}
+				if (this.y < 0) {
+					this.y = 0;
+				}
+				this.y += 5 * Math.cos(this.x / 2.5 * dt);
+			} break;
 		}
 	}
 	render(ctx) {
@@ -449,7 +541,7 @@ class Spaceship extends InGameObject {
 		this.extraLife = 0;
 		this.maxExtraLife = 1;
 		this.isInvisible = false;
-		this.invisibilityTimeOut;
+		this.isSlimed = false;
 	}
 	moveSpaceship(dt) {
 		if (input.isDown('LEFT') || input.isDown('a')) {
@@ -489,11 +581,24 @@ class Spaceship extends InGameObject {
 	invisibility(time) {
 		this.isInvisible = true;
 		this.img = imagesCache.invisibility;
-		clearTimeout(this.invisibilityTimeOut);
+		if (this.invisibilityTimeOut) clearTimeout(this.invisibilityTimeOut);
 		this.invisibilityTimeOut = setTimeout(() => this.removeInvisibility(), time);
 	}
 	removeInvisibility() {
 		this.isInvisible = false;
+		this.img = imagesCache.ship;
+	}
+	addSlime() {
+		this.isSlimed = true;
+		this.speed = 350;
+		this.img = imagesCache.slimed;
+		if (this.slimeTimeOut) clearTimeout(this.slimeTimeOut);
+		this.slimeTimeOut = setTimeout(() => this.removeSlime(), 7000);
+	}
+	removeSlime() {
+		if (this.slimeTimeOut) clearTimeout(this.slimeTimeOut);
+		this.isSlimed = false;
+		this.speed = 500;
 		this.img = imagesCache.ship;
 	}
 	crash() {
@@ -538,6 +643,7 @@ class AsteroidFactory {
 			"7": [40, 40, 4, 70, 0, imagesCache.asteroid4],
 			"8": [200, 200, 4, 70, 0, imagesCache.asteroid7],
 			"9": [80, 80, 8, 100, rand, imagesCache.asteroid8],
+			"10": [100, 100, 8, 70, 6, imagesCache.asteroid9],
 		};
 		return new Asteroid(...typeOptionsMap[type]);
 	}
@@ -570,6 +676,30 @@ class PowerUpFactory {
 	}
 }
 
+class Slime extends InGameObject {
+	constructor(img) {
+		super(8, 40);
+		this.width = 70;
+		this.height = 70;
+		this.x = 0 - this.width;
+		this.y = Math.floor(Math.random() * (800 - this.height));
+		this.speed = 700;
+		this.movingType = 5;
+		this.img = img;
+		this.hitRadius = 35;
+	}
+	crash() {
+		this.img = imagesCache.slimeCrash;
+		this.speed = 250;
+	}
+}
+
+class SlimeFactory {
+	static createSlime() {
+		return new Slime(imagesCache.slime);
+	}
+}
+
 function loadResources() {
 	const context = new (window.AudioContext || window.webkitAudioContext)();
 	const resolved = [];
@@ -591,6 +721,7 @@ function loadResources() {
 		ship: 'img/ship.png',
 		life: 'img/life.png',
 		invisibility: 'img/invisibility.png',
+		slimed: 'img/slimed.png',
 		asteroid0: 'img/ast0.png',
 		asteroid1: 'img/ast1.png',
 		asteroid2: 'img/ast2.png',
@@ -600,10 +731,13 @@ function loadResources() {
 		asteroid6: 'img/ast6.png',
 		asteroid7: 'img/ast7.png',
 		asteroid8: 'img/ast8.png',
+		asteroid9: 'img/ast9.png',
 		powerUp0: 'img/pu0.png',
 		powerUp1: 'img/pu1.png',
 		powerUp2: 'img/pu2.png',
 		powerUp3: 'img/pu3.png',
+		slime: 'img/slime.png',
+		slimeCrash: 'img/slime_crash.png',
 		world1: 'img/maps/level1.jpg',
 		world2: 'img/maps/level2.jpg',
 		world3: 'img/maps/level3.jpg',
@@ -616,6 +750,10 @@ function loadResources() {
 		world10: 'img/maps/level10.jpg',
 		world11: 'img/maps/level11.jpg',
 		world12: 'img/maps/level12.jpg',
+		world13: 'img/maps/level13.jpg',
+		world14: 'img/maps/level14.jpg',
+		world15: 'img/maps/level15.jpg',
+		world16: 'img/maps/level16.jpg',
 	}
 
 	class Sound {
@@ -737,7 +875,7 @@ function loadResources() {
 		});
 	}
 
-	function updateProgress(newResolved) { // визначаємо крок для progress bar
+	function updateProgress(newResolved) {
 		resolved.push(newResolved);
 		const step = 1 / promises.length * 100;
 		const newWidth = resolved.length * step;
@@ -822,6 +960,18 @@ function setPlayerData() {
 	}
 	localStorage.setItem('player', JSON.stringify(playerData));
 }
+function setNewWorlds() {
+	let playerData = JSON.parse(localStorage.getItem('player'));
+	if (Object.keys(playerData.worlds).length === 16) return
+	let newWorlds = {
+		"12": 0,
+		"13": 0,
+		"14": 0,
+		"15": 0,
+	}
+	playerData.worlds = Object.assign(playerData.worlds, newWorlds);
+	localStorage.setItem('player', JSON.stringify(playerData));
+}
 
 function createWorld(world) {
 	openScreen('game');
@@ -830,17 +980,14 @@ function createWorld(world) {
 	const ctx = canvas.getContext('2d');
 	canvas.width = 1200;
 	canvas.height = 800;
-	if (window.innerWidth < 1200) {
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerWidth / 1.5;
-	}
 	document.querySelector('.canvas').appendChild(canvas);
 	audioBuffer.theme.play();
-	let newWorld = WorldFactory.createWorld(world, ctx);
+	return WorldFactory.createWorld(world, ctx);
 }
 
 document.addEventListener('DOMContentLoaded', function (event) {
 	setPlayerData();
+	setNewWorlds();
 	addWorlds();
 	loadResources();
 	window.addEventListener('touchstart', function () {
