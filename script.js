@@ -488,6 +488,15 @@ class InGameObject {
 				this.y += 5 * Math.sin(this.x / 2.5 * dt);
 			} break;
 			case 4: {
+				if (this.y > 800 - this.height) {
+					this.y = 800 - this.height;
+				}
+				if (this.y < 0) {
+					this.y = 0;
+				}
+				this.y += 5 * Math.cos(this.x / 2.5 * dt);
+			} break;
+			case 5: {
 				if (!this.defaultY) {
 					let random = Math.random();
 					if (random < 0.5) {
@@ -501,17 +510,8 @@ class InGameObject {
 				}
 				this.y += (500 * Math.tan(this.x / 1200 * dt)) * this.k;
 			} break;
-			case 5: {
-				this.x += this.speed * dt * 2;
-			} break;
 			case 6: {
-				if (this.y > 800 - this.height) {
-					this.y = 800 - this.height;
-				}
-				if (this.y < 0) {
-					this.y = 0;
-				}
-				this.y += 5 * Math.cos(this.x / 2.5 * dt);
+				this.x += this.speed * dt * 2;
 			} break;
 		}
 	}
@@ -590,7 +590,7 @@ class Spaceship extends InGameObject {
 	}
 	addSlime() {
 		this.isSlimed = true;
-		this.speed = 350;
+		this.speed = 300;
 		this.img = imagesCache.slimed;
 		if (this.slimeTimeOut) clearTimeout(this.slimeTimeOut);
 		this.slimeTimeOut = setTimeout(() => this.removeSlime(), 7000);
@@ -631,19 +631,20 @@ class Asteroid extends InGameObject {
 
 class AsteroidFactory {
 	static createAsteroid(type) {
-		let rand = Math.floor(Math.random() * 5);
+		let rand = Math.floor(Math.random() * 6);
+		let randomCosSin = Math.floor(Math.random() * 2) + 3;
 		let typeOptionsMap = {
 			"0": [100, 100, 8, 60, 0, imagesCache.asteroid0],
 			"1": [60, 60, 4, 70, 0, imagesCache.asteroid1],
 			"2": [125, 125, 4, 60, 0, imagesCache.asteroid2],
 			"3": [80, 80, 4, 70, 1, imagesCache.asteroid3],
 			"4": [40, 40, 4, 70, 2, imagesCache.asteroid4],
-			"5": [70, 70, 4, 70, 3, imagesCache.asteroid5],
-			"6": [60, 60, 4, 70, 4, imagesCache.asteroid6],
+			"5": [70, 70, 4, 70, randomCosSin, imagesCache.asteroid5],
+			"6": [60, 60, 4, 70, 5, imagesCache.asteroid6],
 			"7": [40, 40, 4, 70, 0, imagesCache.asteroid4],
 			"8": [200, 200, 4, 70, 0, imagesCache.asteroid7],
 			"9": [80, 80, 8, 100, rand, imagesCache.asteroid8],
-			"10": [100, 100, 8, 70, 6, imagesCache.asteroid9],
+			"10": [100, 100, 8, 70, randomCosSin, imagesCache.asteroid9],
 		};
 		return new Asteroid(...typeOptionsMap[type]);
 	}
@@ -684,7 +685,7 @@ class Slime extends InGameObject {
 		this.x = 0 - this.width;
 		this.y = Math.floor(Math.random() * (800 - this.height));
 		this.speed = 700;
-		this.movingType = 5;
+		this.movingType = 6;
 		this.img = img;
 		this.hitRadius = 35;
 	}

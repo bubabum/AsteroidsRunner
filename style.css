@@ -20,7 +20,7 @@ body{
 	margin: 0;
 	overflow:  hidden;
 	background-color: #404040;
-	min-height: 100vh;
+	min-height: 100%;
 }
 input,button,textarea{font-family: inherit;}
 input::-ms-clear {
@@ -41,7 +41,6 @@ h1,h2,h3,h4,h5,h6{font-size: inherit;font-weight: 400;}
    align-items: center;
 	min-width: 100%;
 	min-height: 100%;
-	min-height: 100vh;
 }
 .game-screen{
    display: flex;
@@ -432,7 +431,7 @@ canvas {
 		font-size: 8px;
 	}
 	.game-screen{
-		min-height: 100vh;
+		min-height: 100%;
 	}
 	.worlds__caption{
 		font-size: 1.5rem;
